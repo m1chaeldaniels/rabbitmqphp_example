@@ -1,37 +1,58 @@
 <html>
 <script>
-
-function HandleLoginResponse(response)
-{
-	var text = JSON.parse(response);
-//	document.getElementById("textResponse").innerHTML = response+"<p>";	
-	document.getElementById("textResponse").innerHTML = "response: "+text+"<p>";
+function HandleLoginResponse(response) {
+    var text = JSON.parse(response);
+    document.getElementById("textResponse").innerHTML = "response: " + text + "<p>";
 }
 
-function SendLoginRequest(username,password)
-{
-	var request = new XMLHttpRequest();
-	request.open("POST","login.php",true);
-	request.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
-	request.onreadystatechange= function ()
-	{
-		
-		if ((this.readyState == 4)&&(this.status == 200))
-		{
-			HandleLoginResponse(this.responseText);
-		}		
-	}
-	request.send("type=login&uname="+username+"&pword="+password);
+function SendRequest(type, username, password) {
+    var request = new XMLHttpRequest();
+    request.open("POST", "login.php", true);
+    request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    request.onreadystatechange = function () {
+        if ((this.readyState == 4) && (this.status == 200)) {
+            HandleLoginResponse(this.responseText);
+        }
+    }
+    request.send("type=" + type + "&uname=" + username + "&pword=" + password);
+}
+
+function showForm(type) {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('registerForm').style.display = 'none';
+
+    if (type === 'login') {
+        document.getElementById('loginForm').style.display = 'block';
+    } else if (type === 'register') {
+        document.getElementById('registerForm').style.display = 'block';
+    }
 }
 </script>
 
-<h1>login page</h1>
-<body>
-<div id="textResponse">
-awaiting response
+<h1>Authentication Page</h1>
+
+<button onclick="showForm('login')">Log In</button>
+<button onclick="showForm('register')">Register</button>
+
+<!-- Login Form -->
+<div id="loginForm" style="display:none;">
+    <h2>Login</h2>
+    Username: <input type="text" id="loginUsername"><br>
+    Password: <input type="password" id="loginPassword"><br>
+    <button onclick="SendRequest('login', document.getElementById('loginUsername').value, document.getElementById('loginPassword').value)">Submit</button>
 </div>
-<script>
-SendLoginRequest("kehoed","12345");
-</script>
+
+<!-- Register Form -->
+<div id="registerForm" style="display:none;">
+    <h2>Register</h2>
+    Username: <input type="text" id="registerUsername"><br>
+    Password: <input type="password" id="registerPassword"><br>
+    <button onclick="SendRequest('register', document.getElementById('registerUsername').value, document.getElementById('registerPassword').value)">Submit</button>
+</div>
+
+<div id="textResponse">
+    awaiting response
+</div>
+
 </body>
 </html>
