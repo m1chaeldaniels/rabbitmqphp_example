@@ -5,12 +5,15 @@ function HandleLoginResponse(response) {
     document.getElementById("textResponse").innerHTML = "response: " + text + "<p>";
 }
 
-function SendRequest(type, username, password) {
+function SendLoginRequest(type, username, password) {
+
     var request = new XMLHttpRequest();
     request.open("POST", "login.php", true);
     request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-    request.onreadystatechange = function () {
-        if ((this.readyState == 4) && (this.status == 200)) {
+    request.onreadystatechange = function () 
+    {
+        if ((this.readyState == 4) && (this.status == 200)) 
+        {
             HandleLoginResponse(this.responseText);
         }
     }
@@ -39,7 +42,7 @@ function showForm(type) {
     <h2>Login</h2>
     Username: <input type="text" id="loginUsername"><br>
     Password: <input type="password" id="loginPassword"><br>
-    <button onclick="SendRequest('login', document.getElementById('loginUsername').value, document.getElementById('loginPassword').value)">Submit</button>
+    <button onclick="SendLoginRequest('login', document.getElementById('loginUsername').value, document.getElementById('loginPassword').value)">Submit</button>
 </div>
 
 <!-- Register Form -->
@@ -47,7 +50,7 @@ function showForm(type) {
     <h2>Register</h2>
     Username: <input type="text" id="registerUsername"><br>
     Password: <input type="password" id="registerPassword"><br>
-    <button onclick="SendRequest('register', document.getElementById('registerUsername').value, document.getElementById('registerPassword').value)">Submit</button>
+    <button onclick="SendLoginRequest('register', document.getElementById('registerUsername').value, document.getElementById('registerPassword').value)">Submit</button>
 </div>
 
 <div id="textResponse">
