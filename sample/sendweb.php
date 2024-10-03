@@ -1,4 +1,5 @@
 <?php
+include 'test.php';
 
 require_once __DIR__ . '/../vendor/autoload.php';
 use PhpAmqpLib\Connection\AMQPStreamConnection;
@@ -9,7 +10,7 @@ $channel = $connection->channel();
 
 $channel->queue_declare('webMsg', false, false, false, false);
 
-$msg = new AMQPMessage('Web Message');
+$msg = new AMQPMessage($userY);
 $channel->basic_publish($msg, '', 'webMsg');
 
 echo " [x] Sent Web Message'\n";

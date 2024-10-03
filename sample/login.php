@@ -13,7 +13,6 @@ if (!isset($_POST)) {
 
 $request = $_POST;
 $response = "unsupported request type, politely FUCK OFF";
-
 switch ($request["type"]) {
     case "register":
         if (isset($request["uname"]) && isset($request["pword"])) {
