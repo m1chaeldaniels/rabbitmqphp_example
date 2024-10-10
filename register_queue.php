@@ -12,7 +12,7 @@ $channel->queue_declare('responseRegister', false, false, false, false);
 
 echo " [*] Waiting for messages. To exit press CTRL+C\n";
 
-$callback = function ($msg){
+$callback = function ($msg) use ($channel){
 	$data = json_decode($msg->body, true);
 	if (!isset($data['username'], $data['password'])) {
 	echo "Invalid message format\n";
