@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome</title>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Check for the stored token
+            const token = localStorage.getItem('token');
+            if (!token) {
+                // If no token is found, redirect to the login page
+                window.location.href = "index.html";
+                return;
+            }
+
+            // Verify the token with the server (if needed)
+            fetch('validate_token.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status !== 'success') {
+                    // If validation fails, redirect to login
+                    window.location.href = "index.html";
+                } else {
+                    document.getElementById("welcomeMessage").innerHTML = "Welcome, " + data.username;
+                }
+            })
+            .catch(error => {
+                console.error('Error validating token:', error);
+                window.location.href = "index.html";
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Welcome to the Dashboard</h1>
+    <div id="welcomeMessage">Loading...</div>
+</body>
+</html>
