@@ -1,0 +1,126 @@
+<html>
+<head>
+    <script>
+        function HandleResponse(response) {
+            // Parse the JSON response
+			//document.getElementById("textResponse").innerHTML = "Success: " + response.message;			
+            var parsedResponse = JSON.parse(response);
+
+            // Check for success or error and display the appropriate message
+             if (parsedResponse.success) {
+                 document.getElementById("textResponse").innerHTML = "Success: " + parsedResponse.message;
+             } else {
+                 document.getElementById("textResponse").innerHTML = "Error: " + parsedResponse.message;
+             }
+        }
+
+        function SendRequest(type, username, password) {
+            var request = new XMLHttpRequest();
+            request.open("POST", type + ".php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            // Log the values being sent
+            console.log("Sending request: ", "uname=" + username + "&pword=" + password);
+
+            request.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    console.log("Response received: ", this.responseText); // Log the response
+                    HandleResponse(this.responseText);
+                }
+            };
+
+            // Send the username and password
+            request.send("uname=" + username + "&pword=" + password);
+        }
+
+        function toggleForm(formId) {
+            var loginForm = document.getElementById("loginForm");
+            var registerForm = document.getElementById("registerForm");
+            
+            if (formId === 'loginForm') {
+                loginForm.style.display = "block";
+                registerForm.style.display = "none";
+            } else if (formId === 'registerForm') {
+                loginForm.style.display = "none";
+                registerForm.style.display = "block";
+            }
+        }
+
+        function login() {
+            var username = document.getElementById("loginUsername").value;
+            var password = document.getElementById("loginPassword").value;
+            SendRequest("login", username, password);
+        }
+
+        function register() {
+            var username = document.getElementById("registerUsername").value;
+            var password = document.getElementById("registerPassword").value;
+            SendRequest("register", username, password);
+        }
+    </script>
+</head>
+
+<body>
+    <h1>Login & Registration Page</h1>
+    
+    <button onclick="toggleForm('loginForm')">Login</button>
+    <button onclick="toggleForm('registerForm')">Register</button>
+
+    <div id="loginForm" style="display:none;">
+        <h2>Login</h2>
+        <input type="text" id="loginUsername" placeholder="Username" /><br />
+        <input type="password" id="loginPassword" placeholder="Password" /><br />
+        <button onclick="login()">Submit</button>
+    </div>
+
+    <div id="registerForm" style="display:none;">
+        <h2>Register</h2>
+        <input type="text" id="registerUsername" placeholder="Username" /><br />
+        <input type="password" id="registerPassword" placeholder="Password" /><br />
+        <button onclick="register()">Submit</button>
+    </div>
+
+    <div id="textResponse">
+        awaiting response
+    </div>
+</body>
+</html>
+
+
+<!-- <html>
+<script>
+
+function HandleLoginResponse(response)
+{
+	var text = JSON.parse(response);
+//	document.getElementById("textResponse").innerHTML = response+"<p>";	
+	document.getElementById("textResponse").innerHTML = "response: "+text+"<p>";
+}
+
+function SendLoginRequest(username,password)
+{
+	var request = new XMLHttpRequest();
+	request.open("POST","login.php",true);
+	request.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+	request.onreadystatechange= function ()
+	{
+		
+		if ((this.readyState == 4)&&(this.status == 200))
+		{
+			HandleLoginResponse(this.responseText);
+		}		
+	}
+	request.send("type=login&uname="+username+"&pword="+password);
+}
+</script>
+
+<h1>login page</h1>
+<body>
+<div id="textResponse">
+awaiting response
+</div>
+<script>
+SendLoginRequest("kehoed","12345");
+</script>
+</body>
+</html> -->
