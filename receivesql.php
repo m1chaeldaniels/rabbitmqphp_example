@@ -59,5 +59,6 @@ try {
     echo $exception->getMessage();
 }
 
+$mysqli->close();
 $channel->close();
 $connection->close();
