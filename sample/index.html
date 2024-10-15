@@ -61,7 +61,28 @@
                 if (this.readyState === 4 && this.status === 200) {
                     HandleRegResponse(this.responseText);
                     // Start polling for RabbitMQ response
-                    pollForRabbitMQResponse();
+                    pollForRabbitMQResponseRegister();
+                }
+            };
+        
+            request.send("type=" + encodeURIComponent(type) + "&uname=" + encodeURIComponent(username) + "&pword=" + encodeURIComponent(password));
+        }
+
+        function SendLoginRequest(type, username, password) {
+            if (!username || !password) {
+                document.getElementById("textResponse").innerHTML = "Please enter both username and password.";
+                return;
+            }
+        
+            // Send the registration request
+            const request = new XMLHttpRequest();
+            request.open("POST", "login.php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            request.onreadystatechange = function() {
+                if (this.readyState === 4 && this.status === 200) {
+                    HandleLoginResponse(this.responseText);
+                    // Start polling for RabbitMQ response
+                    pollForRabbitMQResponseLogin();
                 }
             };
         
@@ -69,13 +90,25 @@
         }
 
 
-function pollForRabbitMQResponse() {
+function pollForRabbitMQResponseRegister() {
     // Long-polling request to recieveweb.php to wait for the RabbitMQ response
     const pollRequest = new XMLHttpRequest();
     pollRequest.open("GET", "recieveweb.php", true);
     pollRequest.onreadystatechange = function() {
         if (this.readyState === 4 && this.status === 200) {
             HandleRegResponse(this.responseText);
+        }
+    };
+    pollRequest.send();
+}
+
+function pollForRabbitMQResponseLogin() {
+    // Long-polling request to recieveweb.php to wait for the RabbitMQ response
+    const pollRequest = new XMLHttpRequest();
+    pollRequest.open("GET", "recieveweb.php", true);
+    pollRequest.onreadystatechange = function() {
+        if (this.readyState === 4 && this.status === 200) {
+            HandleLoginResponse(this.responseText);
         }
     };
     pollRequest.send();

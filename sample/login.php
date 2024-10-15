@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['type']) && $_POST['ty
     }
 
     $username = $_POST["uname"];
- //   $password = $_POST["pword"];
+    //$password = $_POST["pword"];
 
     // Hash the password before sending it
  //   $hashedPassword = password_hash($password, PASSWORD_BCRYPT);

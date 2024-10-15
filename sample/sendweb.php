@@ -42,7 +42,7 @@ if (isset($data['username']) && isset($data['password'])) {
     $channel = $connection->channel();
 
     // Declare the queue (you may need to adjust the queue name)
-    $channel->queue_declare('webMsg', false, false, false, false);
+    $channel->queue_declare('login', false, false, false, false);
 
     // Create a message with the user data as a JSON object
     $messageData = json_encode([
@@ -53,7 +53,7 @@ if (isset($data['username']) && isset($data['password'])) {
     $msg = new AMQPMessage($messageData);
 
     // Publish the message to the queue
-    $channel->basic_publish($msg, '', 'webMsg');
+    $channel->basic_publish($msg, '', 'login');
 
     echo " [x] Sent login data to RabbitMQ.\n";
 
