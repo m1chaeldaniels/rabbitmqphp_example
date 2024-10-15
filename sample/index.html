@@ -21,16 +21,15 @@
         });
 
         function HandleRegResponse(response) {
-            let message = "Registration processing...";
+            let message = "Processing registration...";
             try {
-                const text = JSON.parse(response);
-                if (text && text.message) {
-                    message = text.message;
+                const jsonResponse = JSON.parse(response);
+                if (jsonResponse && jsonResponse.message) {
+                    message = jsonResponse.message;
                 }
             } catch (e) {
-                console.log("Error parsing response:", e); // Log the error for debugging
+                console.error("Error parsing response:", e);
             }
-
             document.getElementById("textResponse").innerHTML = message;
         }
 
@@ -53,18 +52,34 @@
                 document.getElementById("textResponse").innerHTML = "Please enter both username and password.";
                 return;
             }
-
+        
+            // Send the registration request
             const request = new XMLHttpRequest();
             request.open("POST", "register.php", true);
             request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             request.onreadystatechange = function() {
                 if (this.readyState === 4 && this.status === 200) {
                     HandleRegResponse(this.responseText);
+                    // Start polling for RabbitMQ response
+                    pollForRabbitMQResponse();
                 }
             };
-
+        
             request.send("type=" + encodeURIComponent(type) + "&uname=" + encodeURIComponent(username) + "&pword=" + encodeURIComponent(password));
         }
+
+
+function pollForRabbitMQResponse() {
+    // Long-polling request to recieveweb.php to wait for the RabbitMQ response
+    const pollRequest = new XMLHttpRequest();
+    pollRequest.open("GET", "recieveweb.php", true);
+    pollRequest.onreadystatechange = function() {
+        if (this.readyState === 4 && this.status === 200) {
+            HandleRegResponse(this.responseText);
+        }
+    };
+    pollRequest.send();
+}
 
         function showForm(type) {
             document.getElementById('loginForm').style.display = 'none';
