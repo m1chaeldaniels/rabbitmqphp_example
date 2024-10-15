@@ -26,42 +26,42 @@ function waitForResponse($channel, $responseQueue) {
 }
 
 // Ensure the necessary data is available
-if (isset($_POST['uname']) && isset($_POST['pword'])) {
+if (isset($_POST['uname'])) {
     $username = $_POST['uname'];
-    $hashedPassword = password_hash($_POST['pword'], PASSWORD_DEFAULT); // Hash the password
+    // $hashedPassword = password_hash($_POST['pword'], PASSWORD_DEFAULT);
 
     // Establish a connection to the RabbitMQ server
     $connection = new AMQPStreamConnection('172.29.85.9', 5672, 'test', 'test', 'Sql-Post');
     $channel = $connection->channel();
 
     // Declare the queue for sending user data
-    $channel->queue_declare('webMsg', false, false, false, false);
+    $channel->queue_declare('login', false, false, false, false);
 
     // Create a message with the user data as a JSON object
     $messageData = json_encode([
         'username' => $username,
-        'password' => $hashedPassword
+        //'password' => $hashedPassword
     ]);
 
     $msg = new AMQPMessage($messageData);
 
     // Publish the message to the 'webMsg' queue
-    $channel->basic_publish($msg, '', 'webMsg');
+    $channel->basic_publish($msg, '', 'login');
 
     // Declare a new queue for receiving responses
-    $responseQueue = 'responseRegister'; // Name your response queue
+    $responseQueue = 'responseLogin'; // Name your response queue
     $channel->queue_declare($responseQueue, false, false, false, false);
 
     // Wait for a response message from the response queue
-    $registrationResponse = waitForResponse($channel, $responseQueue);
+    $loginResponse = waitForResponse($channel, $responseQueue);
 
     // Close the connection and channel
     $channel->close();
     $connection->close();
 
     // Return the response back to the client
-    if ($registrationResponse) {
-        echo json_encode($registrationResponse);
+    if ($loginResponse) {
+        echo json_encode($loginResponse);
     } else {
         echo json_encode(['error' => 'No response from the server.']);
     }

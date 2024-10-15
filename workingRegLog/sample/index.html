@@ -1,7 +1,7 @@
 <html>
 <head>
     <script>
-        function HandleResponse(response) {
+        function HandleRegResponse(response) {
             // Parse the JSON response
 			//document.getElementById("textResponse").innerHTML = "Success: " + response.message;			
             var parsedResponse = JSON.parse(response);
@@ -13,6 +13,23 @@
                  document.getElementById("textResponse").innerHTML = "Error: " + parsedResponse.message;
              }
         }
+        function HandleLoginResponse(response) {		
+            var userPassword = document.getElementById("loginPassword").value;
+            var userUsername = document.getElementById("loginUsername").value;
+            var parsedResponse = JSON.parse(response);
+
+            if (parsedResponse.success) {
+                if (parsedResponse.password === userPassword) {
+                    document.body.innerHTML = "<h1>Welcome, " + userUsername + "!</h1>";
+                    document.body.innerHTML += '<button onclick="logout()">Logout</button>';
+                } else {
+                    document.getElementById("textResponse").innerHTML = "Error: Incorrect password.";
+                }
+            } else {
+                document.getElementById("textResponse").innerHTML = "Error: " + parsedResponse.message;
+            }
+        }
+
 
         function SendRequest(type, username, password) {
             var request = new XMLHttpRequest();
@@ -25,7 +42,11 @@
             request.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
                     console.log("Response received: ", this.responseText); // Log the response
-                    HandleResponse(this.responseText);
+                    if (type === "register"){
+                        HandleRegResponse(this.responseText);
+                    } else {
+                        HandleLoginResponse(this.responseText);
+                    }
                 }
             };
 
@@ -56,6 +77,11 @@
             var username = document.getElementById("registerUsername").value;
             var password = document.getElementById("registerPassword").value;
             SendRequest("register", username, password);
+        }
+
+        function logout() {
+            // Reload the page to go back to the main page
+            location.reload();
         }
     </script>
 </head>
