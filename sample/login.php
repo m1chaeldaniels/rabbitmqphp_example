@@ -1,57 +1,33 @@
 <?php
-session_start();
 
-// Dummy storage for user credentials (for now, we’ll just use session as a storage placeholder)
-$users = isset($_SESSION['users']) ? $_SESSION['users'] : array();
 
-// Check if POST request is set
-if (!isset($_POST)) {
-    $msg = "NO POST MESSAGE SET, POLITELY FUCK OFF";
-    echo json_encode($msg);
-    exit(0);
+header('Content-Type: application/json');
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['type']) && $_POST['type'] === 'login') {
+    if (!isset($_POST["uname"]) || !isset($_POST["pword"])) {
+        echo json_encode(["status" => "error", "message" => "Username or password missing"]);
+        exit(0);
+    }
+
+    $username = $_POST["uname"];
+    //$password = $_POST["pword"];
+
+    // Hash the password before sending it
+ //   $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+
+    // Prepare the data for sendweb.php
+    $data = [
+        'username' => $username,
+  //      'password' => $hashedPassword
+    ];
+
+    // Include sendweb.php to handle RabbitMQ messaging
+    include 'sendweb.php';
+    
+    echo json_encode(["status" => "success", "message" => "Login data sent for processing."]);
+} else {
+    echo json_encode(["status" => "error", "message" => "Invalid request."]);
 }
 
-$request = $_POST;
-$response = "unsupported request type, politely FUCK OFF";
-switch ($request["type"]) {
-    case "register":
-        if (isset($request["uname"]) && isset($request["pword"])) {
-            $username = $request["uname"];
-            $password = $request["pword"];
-
-            // Check if username already exists
-            if (isset($users[$username])) {
-                $response = "Username already exists";
-            } else {
-                // Store user credentials (for demo purposes, storing in session)
-                $users[$username] = $password;
-                $_SESSION['users'] = $users;
-                $response = "Registration successful!";
-            }
-        } else {
-            $response = "Username or password missing";
-        }
-        break;
-
-    case "login":
-        if (isset($request["uname"]) && isset($request["pword"])) {
-            $username = $request["uname"];
-            $password = $request["pword"];
-
-            // Validate user credentials
-            if (isset($users[$username]) && $users[$username] === $password) {
-                $_SESSION['logged_in'] = true;
-                $_SESSION['username'] = $username;
-                $response = "Login successful!";
-            } else {
-                $response = "Invalid username or password";
-            }
-        } else {
-            $response = "Username or password missing";
-        }
-        break;
-}
-
-echo json_encode($response);
 exit(0);
 ?>

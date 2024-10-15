@@ -1,61 +1,155 @@
 <html>
-<script>
-function HandleLoginResponse(response) {
-    var text = JSON.parse(response);
-    document.getElementById("textResponse").innerHTML = "response: " + text + "<p>";
+<head>
+    <script>
+        // Ensure the DOM is fully loaded before adding event listeners
+        document.addEventListener("DOMContentLoaded", function() {
+            // Add an event listener for the register button
+            document.getElementById("registerSubmit").addEventListener("click", function(event) {
+                event.preventDefault(); // Prevent the form from submitting normally
+                const username = document.getElementById("registerUsername").value;
+                const password = document.getElementById("registerPassword").value;
+                SendRegRequest('register', username, password);
+            });
+
+            // Add an event listener for the login button
+            document.getElementById("loginSubmit").addEventListener("click", function(event) {
+                event.preventDefault(); // Prevent the form from submitting normally
+                const username = document.getElementById("loginUsername").value;
+                const password = document.getElementById("loginPassword").value;
+                SendLoginRequest('login', username, password);
+            });
+        });
+
+        function HandleRegResponse(response) {
+            let message = "Processing registration...";
+            try {
+                const jsonResponse = JSON.parse(response);
+                if (jsonResponse && jsonResponse.message) {
+                    message = jsonResponse.message;
+                }
+            } catch (e) {
+                console.error("Error parsing response:", e);
+            }
+            document.getElementById("textResponse").innerHTML = message;
+        }
+
+        function HandleLoginResponse(response) {
+            let message = "Login processing...";
+            try {
+                const text = JSON.parse(response);
+                if (text && text.message) {
+                    message = text.message;
+                }
+            } catch (e) {
+                console.log("Error parsing response:", e); // Log the error for debugging
+            }
+
+            document.getElementById("textResponse").innerHTML = message;
+        }
+
+        function SendRegRequest(type, username, password) {
+            if (!username || !password) {
+                document.getElementById("textResponse").innerHTML = "Please enter both username and password.";
+                return;
+            }
+        
+            // Send the registration request
+            const request = new XMLHttpRequest();
+            request.open("POST", "register.php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            request.onreadystatechange = function() {
+                if (this.readyState === 4 && this.status === 200) {
+                    HandleRegResponse(this.responseText);
+                    // Start polling for RabbitMQ response
+                    pollForRabbitMQResponseRegister();
+                }
+            };
+        
+            request.send("type=" + encodeURIComponent(type) + "&uname=" + encodeURIComponent(username) + "&pword=" + encodeURIComponent(password));
+        }
+
+        function SendLoginRequest(type, username, password) {
+            if (!username || !password) {
+                document.getElementById("textResponse").innerHTML = "Please enter both username and password.";
+                return;
+            }
+        
+            // Send the registration request
+            const request = new XMLHttpRequest();
+            request.open("POST", "login.php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            request.onreadystatechange = function() {
+                if (this.readyState === 4 && this.status === 200) {
+                    HandleLoginResponse(this.responseText);
+                    // Start polling for RabbitMQ response
+                    pollForRabbitMQResponseLogin();
+                }
+            };
+        
+            request.send("type=" + encodeURIComponent(type) + "&uname=" + encodeURIComponent(username) + "&pword=" + encodeURIComponent(password));
+        }
+
+
+function pollForRabbitMQResponseRegister() {
+    // Long-polling request to recieveweb.php to wait for the RabbitMQ response
+    const pollRequest = new XMLHttpRequest();
+    pollRequest.open("GET", "recieveweb.php", true);
+    pollRequest.onreadystatechange = function() {
+        if (this.readyState === 4 && this.status === 200) {
+            HandleRegResponse(this.responseText);
+        }
+    };
+    pollRequest.send();
 }
 
-function SendLoginRequest(type, username, password) {
-
-    var request = new XMLHttpRequest();
-    request.open("POST", "login.php", true);
-    request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-    request.onreadystatechange = function () 
-    {
-        if ((this.readyState == 4) && (this.status == 200)) 
-        {
+function pollForRabbitMQResponseLogin() {
+    // Long-polling request to recieveweb.php to wait for the RabbitMQ response
+    const pollRequest = new XMLHttpRequest();
+    pollRequest.open("GET", "recieveweb.php", true);
+    pollRequest.onreadystatechange = function() {
+        if (this.readyState === 4 && this.status === 200) {
             HandleLoginResponse(this.responseText);
         }
-    }
-    request.send("type=" + type + "&uname=" + username + "&pword=" + password);
+    };
+    pollRequest.send();
 }
 
-function showForm(type) {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'none';
+        function showForm(type) {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'none';
 
-    if (type === 'login') {
-        document.getElementById('loginForm').style.display = 'block';
-    } else if (type === 'register') {
-        document.getElementById('registerForm').style.display = 'block';
-    }
-}
-</script>
+            if (type === 'login') {
+                document.getElementById('loginForm').style.display = 'block';
+            } else if (type === 'register') {
+                document.getElementById('registerForm').style.display = 'block';
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Authentication Page</h1>
 
-<h1>Authentication Page</h1>
+    <button onclick="showForm('login')">Log In</button>
+    <button onclick="showForm('register')">Register</button>
 
-<button onclick="showForm('login')">Log In</button>
-<button onclick="showForm('register')">Register</button>
+    <!-- Login Form -->
+    <div id="loginForm" style="display:none;">
+        <h2>Login</h2>
+        Username: <input type="text" id="loginUsername"><br>
+        Password: <input type="password" id="loginPassword"><br>
+        <button id="loginSubmit">Submit</button>
+    </div>
 
-<!-- Login Form -->
-<div id="loginForm" style="display:none;">
-    <h2>Login</h2>
-    Username: <input type="text" id="loginUsername"><br>
-    Password: <input type="password" id="loginPassword"><br>
-    <button onclick="SendLoginRequest('login', document.getElementById('loginUsername').value, document.getElementById('loginPassword').value)">Submit</button>
-</div>
+    <!-- Register Form -->
+    <div id="registerForm" style="display:none;">
+        <h2>Register</h2>
+        Username: <input type="text" id="registerUsername"><br>
+        Password: <input type="password" id="registerPassword"><br>
+        <button id="registerSubmit">Submit</button>
+    </div>
 
-<!-- Register Form -->
-<div id="registerForm" style="display:none;">
-    <h2>Register</h2>
-    Username: <input type="text" id="registerUsername"><br>
-    Password: <input type="password" id="registerPassword"><br>
-    <button onclick="SendLoginRequest('register', document.getElementById('registerUsername').value, document.getElementById('registerPassword').value)">Submit</button>
-</div>
-
-<div id="textResponse">
-    awaiting response
-</div>
-
+    <div id="textResponse">
+        awaiting response
+    </div>
 </body>
 </html>
