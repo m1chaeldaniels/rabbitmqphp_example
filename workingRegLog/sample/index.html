@@ -19,6 +19,289 @@
             var parsedResponse = JSON.parse(response);
 
             if (parsedResponse.success) {
+                // Password returned from the database
+                if (parsedResponse.password === userPassword) {
+                    // Password matches, now generate the session token
+                    generateSessionToken(userUsername);
+                } else {
+                    document.getElementById("textResponse").innerHTML = "Error: Incorrect password.";
+                }
+            } else {
+                document.getElementById("textResponse").innerHTML = "Error: " + parsedResponse.message;
+            }
+        }
+
+        // Function to generate a session token after login
+        function generateSessionToken(username) {
+            var request = new XMLHttpRequest();
+            request.open("POST", "generateToken.php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            request.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var tokenResponse = JSON.parse(this.responseText);
+                    if (tokenResponse.success) {
+                        // Store the session token and expiry in localStorage
+                        // localStorage.setItem('username', tokenResponse.username);
+                        localStorage.setItem('session_token', tokenResponse.session_token);
+                        localStorage.setItem('token_expiry', tokenResponse.token_expiry);
+                        document.body.innerHTML = "<h1>Welcome, " + username + "!</h1>";
+                        document.body.innerHTML += '<button onclick="logout()">Logout</button>';
+                        document.body.innerHTML += '<button onclick="validateSession()">Validate</button>';
+                    } else {
+                        document.getElementById("textResponse").innerHTML = "Error: " + tokenResponse.message;
+                    }
+                }
+            };
+
+            // Send the username to generate the token
+            request.send("uname=" + username);
+        }
+
+
+        function SendRequest(type, username, password) {
+            var request = new XMLHttpRequest();
+            request.open("POST", type + ".php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            // Log the values being sent
+            console.log("Sending request: ", "uname=" + username + "&pword=" + password);
+
+            request.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    console.log("Response received: ", this.responseText); // Log the response
+                    if (type === "register"){
+                        HandleRegResponse(this.responseText);
+                    } else {
+                        HandleLoginResponse(this.responseText);
+                    }
+                }
+            };
+
+            // Send the username and password
+            request.send("uname=" + username + "&pword=" + password);
+        }
+
+        function toggleForm(formId) {
+            var loginForm = document.getElementById("loginForm");
+            var registerForm = document.getElementById("registerForm");
+            
+            if (formId === 'loginForm') {
+                loginForm.style.display = "block";
+                registerForm.style.display = "none";
+            } else if (formId === 'registerForm') {
+                loginForm.style.display = "none";
+                registerForm.style.display = "block";
+            }
+        }
+
+        function login() {
+            var username = document.getElementById("loginUsername").value;
+            var password = document.getElementById("loginPassword").value;
+            SendRequest("login", username, password);
+        }
+
+        function register() {
+            var username = document.getElementById("registerUsername").value;
+            var password = document.getElementById("registerPassword").value;
+            SendRequest("register", username, password);
+        }
+
+
+
+        function validateSession() {
+            var sessionToken = localStorage.getItem('session_token');
+            
+            if (!sessionToken) {
+                console.log("No session token found. Please log in.");
+                resetPage();
+                return;
+            }
+
+            var request = new XMLHttpRequest();
+            request.open("POST", "validateSession.php", true);  // This file will handle session validation
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            request.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var response = JSON.parse(this.responseText);
+                    if (response.success) {
+                        // Session is active
+                        document.body.innerHTML += "<p>Session is active.</p>";
+                    } else {
+                        // Session is invalid, logout and reset page
+                        console.log("Session invalid: ", response.message);
+                    }
+                }
+            };
+
+            // Send the session token to validate
+            request.send("session_token=" + sessionToken);
+        }
+
+
+        function resetPage() {
+            document.getElementById('loginForm').style.display = "none";
+            document.getElementById('registerForm').style.display = "none";
+            document.getElementById('textResponse').innerHTML = "awaiting response";
+            document.getElementById('logoutButton').style.display = "none"; // Hide logout button
+            document.getElementById('validateSessionButton').style.display = "none"; // Hide validate session button
+            document.getElementById('welcomeMessage').style.display = "none"; // Hide welcome message
+        }
+
+
+
+        // function resetPage() {
+        //     document.body.innerHTML = `
+        //         <h1>Login & Registration Page</h1>
+        //         <button onclick="toggleForm('loginForm')">Login</button>
+        //         <button onclick="toggleForm('registerForm')">Register</button>
+        //         <div id="loginForm" style="display:none;">
+        //             <h2>Login</h2>
+        //             <input type="text" id="loginUsername" placeholder="Username" /><br />
+        //             <input type="password" id="loginPassword" placeholder="Password" /><br />
+        //             <button onclick="login()">Submit</button>
+        //         </div>
+        //         <div id="registerForm" style="display:none;">
+        //             <h2>Register</h2>
+        //             <input type="text" id="registerUsername" placeholder="Username" /><br />
+        //             <input type="password" id="registerPassword" placeholder="Password" /><br />
+        //             <button onclick="register()">Submit</button>
+        //         </div>
+        //         <div id="textResponse">
+        //             awaiting response
+        //         </div>
+        //     `;
+        // }
+
+
+
+        function logout() {
+            // var username = localStorage.getItem('username');
+            var sessionToken = localStorage.getItem('session_token');
+
+            if (!sessionToken) {
+                console.log("No user logged in.");
+                return;
+            }
+
+            var request = new XMLHttpRequest();
+            request.open("POST", "logout.php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            request.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var response = JSON.parse(this.responseText);
+                    if (response.success) {
+                        console.log("Logout successful: ", response.message);
+                        console.log("session_token=" + sessionToken);
+
+                        // Clear the session token and username from localStorage
+                        localStorage.removeItem('session_token');
+                        localStorage.removeItem('username');
+                        resetPage();
+
+                    } else {
+                        console.log("Logout failed: ", response.message);
+                    }
+                }
+            };
+
+            request.send("session_token=" + sessionToken);
+        }
+
+
+
+
+            
+
+
+
+
+
+    </script>
+</head>
+
+<body>
+    <h1>Login & Registration Page</h1>
+    
+    <button onclick="toggleForm('loginForm')">Login</button>
+    <button onclick="toggleForm('registerForm')">Register</button>
+
+    <div id="loginForm" style="display:none;">
+        <h2>Login</h2>
+        <input type="text" id="loginUsername" placeholder="Username" /><br />
+        <input type="password" id="loginPassword" placeholder="Password" /><br />
+        <button onclick="login()">Submit</button>
+    </div>
+
+    <div id="registerForm" style="display:none;">
+        <h2>Register</h2>
+        <input type="text" id="registerUsername" placeholder="Username" /><br />
+        <input type="password" id="registerPassword" placeholder="Password" /><br />
+        <button onclick="register()">Submit</button>
+    </div>
+
+    <div id="textResponse">
+        awaiting response
+    </div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- <html>
+<head>
+    <script>
+        function HandleRegResponse(response) {
+            // Parse the JSON response
+			//document.getElementById("textResponse").innerHTML = "Success: " + response.message;			
+            var parsedResponse = JSON.parse(response);
+
+            // Check for success or error and display the appropriate message
+             if (parsedResponse.success) {
+                 document.getElementById("textResponse").innerHTML = "Success: " + parsedResponse.message;
+             } else {
+                 document.getElementById("textResponse").innerHTML = "Error: " + parsedResponse.message;
+             }
+        }
+        function HandleLoginResponse(response) {		
+            var userPassword = document.getElementById("loginPassword").value;
+            var userUsername = document.getElementById("loginUsername").value;
+            var parsedResponse = JSON.parse(response);
+
+            if (parsedResponse.success) {
                 if (parsedResponse.password === userPassword) {
                     document.body.innerHTML = "<h1>Welcome, " + userUsername + "!</h1>";
                     document.body.innerHTML += '<button onclick="logout()">Logout</button>';
@@ -110,7 +393,27 @@
         awaiting response
     </div>
 </body>
-</html>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 <!-- <html>
