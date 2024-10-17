@@ -43,16 +43,23 @@ $callback = function ($msg) use ($channel){
         $stmt->bind_param("ss", $username, $password);
 
         if ($stmt->execute()) {
+    // inserts the new user
 	echo "Inserted user: $username \n";
 	sendMessage($channel, true, 'User registered successfully: ' . $username);
+    echo "Sent registration confirmation: $username \n";
         } else {
+    // if the user can't be inserted it sends back message
 	echo "Failed to insert user: " . $stmt->error . "\n";
 	sendMessage($channel, false, 'Error inserting user: ' . $stmt->error);
+    echo "Sent registration failure: $username \n";
+
         }
         $stmt->close();
     } else {
 	echo "User $username already exists \n";
 	sendMessage($channel, false, 'User already exists: ' . $username);
+    echo "Sent user already exists: $username \n";
+
     }
 
 
@@ -65,7 +72,7 @@ function sendMessage($channel, $success, $message) {
         'message' => $message,
     ];
     $msg = new AMQPMessage(json_encode($response));
-    $channel->basic_publish($msg, '', 'responseRegister'); // Send message to the response queue
+    $channel->basic_publish($msg, '', 'responseRegister');
 }
 
 

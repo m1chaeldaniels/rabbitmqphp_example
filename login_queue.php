@@ -7,6 +7,8 @@ use PhpAmqpLib\Message\AMQPMessage;
 $connection = new AMQPStreamConnection('172.29.85.9', 5672, 'test', 'test', 'Sql-Post');
 $channel = $connection->channel();
 
+
+// LOGIN QUEUES
 $channel->queue_declare('login', false, false, false, false);
 $channel->queue_declare('responseLogin', false, false, false, false);
 
@@ -30,6 +32,7 @@ $callback = function ($msg) use ($channel){
             die("connection failed: " . $mysqli->connect_error);
     }
 
+    // grabs the password from the users table
     $stmt = $mysqli->prepare("SELECT password_hash FROM users WHERE username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
@@ -38,24 +41,15 @@ $callback = function ($msg) use ($channel){
     $stmt->close();
 
     if ($hashedPassword) {
-	
-	/*
-        $responseData = [
-            'username' => $username,
-            'password_hash' => $hashedPassword,
-	];*/
 
-	echo "Sent hashed password for user: $username \n";
-	sendMessage($channel, true, 'User Hashed Password: ' . $hashedPassword);
-	
-	/*
-        $msg = new AMQPMessage(json_encode($responseData));
-        $channel->basic_publish(($msg, '', 'responseQueue');
-	 */
+    // if the user is in the db it sends over the pass
+	sendMessage($channel, true, 'User Found', $username, $hashedPassword);
+    echo "Sent password for user: $username \n";
 
     } else {
+    // if the username doesn't exist it sends a message
 	echo "User $username does not exist \n";
-	sendMessage($channel, false, 'User Does Not Exist: ' . $username);
+	sendMessage($channel, false, 'User Does Not Exist: ', $username, 'NA');
     }
 
     $mysqli->close();
@@ -63,21 +57,16 @@ $callback = function ($msg) use ($channel){
 };
 
 
-
-function sendMessage($channel, $success, $message) {
+function sendMessage($channel, $success, $message, $username, $password) {
     $response = [
         'success' => $success,
         'message' => $message,
+        'username' => $username,
+        'password' => $password,
     ];
     $msg = new AMQPMessage(json_encode($response, JSON_UNESCAPED_SLASHES));
-    $channel->basic_publish($msg, '', 'responseLogin'); // Send message to the response queue
+    $channel->basic_publish($msg, '', 'responseLogin');
 }
-
-
-
-
-
-
 
 
 $channel->basic_consume('login', '', false, true, false, false, $callback);
