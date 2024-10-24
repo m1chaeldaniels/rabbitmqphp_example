@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="profile.css">
+
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">
+            <h1>Job Tracker</h1>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="homepage.html">Home</a></li>
+                <li><a href="profile.html">Profile</a></li>
+                <li><a href="#">Search Jobs</a></li>
+                <li><a href="#">Research Companies</a></li>
+                <li><a href="#">Alerts</a></li>
+                <li><a href="#">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="profile-container">
+        <section class="profile-details">
+            <h1>User Profile</h1>
+            <div class="profile-info">
+                <p><strong>Username:</strong> <span id="username">JohnDoe</span></p>
+                <p><strong>Email:</strong> <span id="email">john.doe@example.com</span></p>
+                <p><strong>Preferred Locations:</strong> <span id="locations">N/A</span></p>
+                <p><strong>Desired Job Titles:</strong> <span id="job-titles">N/A</span></p>
+                <p><strong>Skills:</strong> <span id="skills">N/A</span></p>
+            </div>
+            <button class="edit-profile" onclick="enableEditing()">Edit Profile</button>
+            <button class="save-profile" onclick="saveProfile()" style="display:none;">Save Changes</button>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Job Application Tracker | All Rights Reserved</p>
+    </footer>
+
+    <script>
+       
+        let preferredLocations = 'N/A';
+        let desiredJobTitles = 'N/A';
+        let skills = 'N/A';
+
+        
+        function populateProfile() {
+            document.getElementById('locations').innerText = preferredLocations;
+            document.getElementById('job-titles').innerText = desiredJobTitles;
+            document.getElementById('skills').innerText = skills;
+        }
+
+       
+        function enableEditing() {
+            let fields = ['locations', 'job-titles', 'skills'];
+            fields.forEach(field => {
+                let element = document.getElementById(field);
+                let currentText = element.innerText;
+                element.innerHTML = `<input type="text" id="input-${field}" value="${currentText === 'N/A' ? '' : currentText}">`;
+            });
+
+            document.querySelector('.edit-profile').style.display = 'none';
+            document.querySelector('.save-profile').style.display = 'inline-block';
+        }
+
+        
+        function saveProfile() {
+            
+            preferredLocations = document.getElementById('input-locations').value || 'N/A';
+            desiredJobTitles = document.getElementById('input-job-titles').value || 'N/A';
+            skills = document.getElementById('input-skills').value || 'N/A';
+
+            
+            document.getElementById('locations').innerText = preferredLocations;
+            document.getElementById('job-titles').innerText = desiredJobTitles;
+            document.getElementById('skills').innerText = skills;
+
+            document.querySelector('.edit-profile').style.display = 'inline-block';
+            document.querySelector('.save-profile').style.display = 'none';
+        }
+
+        
+        populateProfile();
+    </script>
+</body>
+
+</html>
