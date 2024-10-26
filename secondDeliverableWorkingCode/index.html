@@ -98,7 +98,7 @@
 
             // Log the values being sent
             console.log("Sending request: ", "uname=" + username + "&pword=" + password);
-
+            document.getElementById("textResponse").innerHTML = "Loading";
             request.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
                     console.log("Response received: ", this.responseText); // Log the response
@@ -283,7 +283,7 @@
     </div>
 
     <div id="textResponse">
-        awaiting response
+        
     </div>
 </body>
 

@@ -59,6 +59,28 @@
     </footer>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+        var sessionToken = localStorage.getItem('session_token');
+        if (!sessionToken) {
+            // Redirect to the login page if no session token is found
+            window.location.href = 'index.html';
+        } else {
+            // Validate the session token
+            var request = new XMLHttpRequest();
+            request.open('POST', 'validateSession.php', true);
+            request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            request.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var response = JSON.parse(this.responseText);
+                    if (!response.success) {
+                        // If the token is invalid, redirect to the login page
+                        window.location.href = 'index.html';
+                    }
+                }
+            };
+            request.send('session_token=' + sessionToken);
+        }
+        });
   
             function toggleAlertsPopup() {
                 const popup = document.getElementById('alertsPopup');
