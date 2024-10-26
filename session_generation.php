@@ -17,7 +17,7 @@ $callback = function ($msg) use ($channel){
 
     // grabs both the username and the session tok
     if (!isset($data['username'], $data['session_token'], $data['token_expiry'])) {
-        sendMessage($channel, false, 'Invalid message format');
+        sendMessage($channel, false, 'Invalid message format', null, null, null, null);
         return;
     }
 
@@ -28,7 +28,7 @@ $callback = function ($msg) use ($channel){
     $mysqli = new mysqli('localhost', 'testUser', '12345', 'testdb');
 
     if ($mysqli->connect_error) {
-        sendMessage($channel, false, 'Database connection failed');
+        sendMessage($channel, false, 'Database connection failed', null, null, null, null);
         return;
     }
 
@@ -37,20 +37,46 @@ $callback = function ($msg) use ($channel){
     $stmt->bind_param("sis", $sessionToken, $tokenExpiry, $username);
 
     if ($stmt->execute()) {
-        sendMessage($channel, true, 'Session token stored successfully');
+        // Fetch user details from the users table
+        $stmt = $mysqli->prepare("SELECT id, email, username FROM users WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $stmt->bind_result($userId, $email, $username);
+        $stmt->fetch();
+        $stmt->close();
+
+        if ($userId) {
+            // Fetch user preferences from the user_preferences table
+            $stmt = $mysqli->prepare("SELECT jobTitle, location FROM user_preferences WHERE user_id = ?");
+            $stmt->bind_param("i", $userId);
+            $stmt->execute();
+            $stmt->bind_result($jobTitle, $location);
+            $stmt->fetch();
+            $stmt->close();
+
+            sendMessage($channel, true, 'Session token stored successfully', $email, $jobTitle, $location, $username);
+        } else {
+            sendMessage($channel, false, 'User not found', null, null, null, null);
+        }
     } else {
-        sendMessage($channel, false, 'Failed to store session token');
+        sendMessage($channel, false, 'Failed to store session token', null, null, null, null);
     }
 
-    $stmt->close();
     $mysqli->close();
 };
 
-function sendMessage($channel, $success, $message) {
+//echo($message . $email . $jobTitle . $location . $username);
+
+function sendMessage($channel, $success, $message, $email, $jobTitle, $location, $username) {
     $response = [
         'success' => $success,
-        'message' => $message
+        'message' => $message,
+        'email' => $email,
+        'jobTitle' => $jobTitle,
+        'location' => $location,
+        'username' => $username
     ];
+    echo "Message: $message | Email: $email | Job Title: $jobTitle | Location: $location | Username: $username\n";
     $msg = new AMQPMessage(json_encode($response, JSON_UNESCAPED_SLASHES));
     $channel->basic_publish($msg, '', 'responseSessionToken');
 }

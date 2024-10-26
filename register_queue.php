@@ -8,29 +8,35 @@ $connection = new AMQPStreamConnection('172.29.85.9', 5672, 'test', 'test', 'Sql
 $channel = $connection->channel();
 
 $channel->queue_declare('webMsg', false, false, false, false);
-
 $channel->queue_declare('responseRegister', false, false, false, false);
 
 echo " [*] Waiting for messages. To exit press CTRL+C\n";
 
 $callback = function ($msg) use ($channel){
-	$data = json_decode($msg->body, true);
-	if (!isset($data['username'], $data['password'])) {
-	echo "Invalid message format\n";
-	sendMessage($channel, false, 'Invalid message format');
-	return;
-    	}
+    $data = json_decode($msg->body, true);
+
+    // Validate message format
+    if (!isset($data['username'], $data['password'], $data['email'], $data['jobTitle'], $data['location'])) {
+        echo "Invalid message format\n";
+        sendMessage($channel, false, 'Invalid message format');
+        return;
+    }
 
     $username = $data['username'];
     $password = $data['password'];
+    $email = $data['email'];
+    $jobTitle = $data['jobTitle'];
+    $location = $data['location'];
 
     echo ' [x] Received ', $msg->getBody(), "\n";
 
     $mysqli = new mysqli('localhost', 'testUser', '12345', 'testdb');
 
     if ($mysqli->connect_error) {
-	    die("connection failed: " . $mysqli->connect_error);
+        die("Connection failed: " . $mysqli->connect_error);
     }
+
+    // Check if the user already exists
     $stmt = $mysqli->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
@@ -39,32 +45,44 @@ $callback = function ($msg) use ($channel){
     $stmt->close();
 
     if ($count === 0) {
-        $stmt = $mysqli->prepare("INSERT INTO users(username, password_hash) VALUES (?, ?)");
-        $stmt->bind_param("ss", $username, $password);
+        // Insert the new user into the users table
+        $stmt = $mysqli->prepare("INSERT INTO users(username, password_hash, email) VALUES (?, ?, ?)");
+        $stmt->bind_param("sss", $username, $password, $email);
 
         if ($stmt->execute()) {
-    // inserts the new user
-	echo "Inserted user: $username \n";
-	sendMessage($channel, true, 'User registered successfully: ' . $username);
-    echo "Sent registration confirmation: $username \n";
+            // Get the inserted user ID
+            $userId = $stmt->insert_id;
+            $stmt->close();
+
+            // Insert job title and preferred location into the user_preferences table
+            $stmt = $mysqli->prepare("INSERT INTO user_preferences(user_id, jobTitle, location) VALUES (?, ?, ?)");
+            $stmt->bind_param("iss", $userId, $jobTitle, $location);
+
+            if ($stmt->execute()) {
+                echo "Inserted user and preferences: $username \n";
+                sendMessage($channel, true, 'User registered successfully: ' . $username);
+                echo "Sent registration confirmation: $username \n";
+            } else {
+                echo "Failed to insert preferences for user: " . $stmt->error . "\n";
+                sendMessage($channel, false, 'Error inserting preferences for user: ' . $stmt->error);
+                echo "Sent preference insertion failure: $username \n";
+            }
+
+            $stmt->close();
         } else {
-    // if the user can't be inserted it sends back message
-	echo "Failed to insert user: " . $stmt->error . "\n";
-	sendMessage($channel, false, 'Error inserting user: ' . $stmt->error);
-    echo "Sent registration failure: $username \n";
-
+            echo "Failed to insert user: " . $stmt->error . "\n";
+            sendMessage($channel, false, 'Error inserting user: ' . $stmt->error);
+            echo "Sent registration failure: $username \n";
         }
-        $stmt->close();
-    } else {
-	echo "User $username already exists \n";
-	sendMessage($channel, false, 'User already exists: ' . $username);
-    echo "Sent user already exists: $username \n";
 
+    } else {
+        echo "User $username or email $email already exists \n";
+        sendMessage($channel, false, 'User or email already exists: ' . $username);
+        echo "Sent user already exists: $username \n";
     }
 
-
+    $mysqli->close();
 };
-
 
 function sendMessage($channel, $success, $message) {
     $response = [
@@ -74,10 +92,6 @@ function sendMessage($channel, $success, $message) {
     $msg = new AMQPMessage(json_encode($response));
     $channel->basic_publish($msg, '', 'responseRegister');
 }
-
-
-
-
 
 $channel->basic_consume('webMsg', '', false, true, false, false, $callback);
 
