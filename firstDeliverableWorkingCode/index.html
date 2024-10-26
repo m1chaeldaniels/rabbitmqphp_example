@@ -1,4 +1,8 @@
 <html>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="index.css">
+    <title>Login & Registration</title>
 <head>
     <script>
         function HandleRegResponse(response) {
@@ -250,31 +254,39 @@
 
 <body>
     <h1>Login & Registration Page</h1>
-    
-    <button onclick="toggleForm('loginForm')">Login</button>
-    <button onclick="toggleForm('registerForm')">Register</button>
 
-    <div id="loginForm" style="display:none;">
-        <h2>Login</h2>
-        <input type="text" id="loginUsername" placeholder="Username" /><br />
-        <input type="password" id="loginPassword" placeholder="Password" /><br />
-        <button onclick="login()">Submit</button>
+    
+    <div class="button-container">
+        <button onclick="toggleForm('loginForm')" class="toggle-btn">Login</button>
+        <button onclick="toggleForm('registerForm')" class="toggle-btn">Register</button>
     </div>
 
-    <div id="registerForm" style="display:none;">
+    <div id="loginForm" class="form-container" style="display:none;">
+        <h2>Login</h2>
+        <input type="text" id="loginUsername" placeholder="Username"><br>
+        <input type="password" id="loginPassword" placeholder="Password"><br>
+        <div class="button-wrapper">
+            <button onclick="login()" class="submit-btn">Submit</button>
+        </div>
+    </div>
+
+    <div id="registerForm" class="form-container" style="display:none;">
         <h2>Register</h2>
-        <input type="text" id="registerUsername" placeholder="Username" /><br />
-        <input type="email" id="registerEmail" placeholder="Email" /><br />
-        <input type="text" id="registerJobTitle" placeholder="Job Title" /><br />
-        <input type="text" id="registerLocation" placeholder="Prefered Location" /><br />
-        <input type="password" id="registerPassword" placeholder="Password" /><br />
-        <button onclick="register()">Submit</button>
+        <input type="text" id="registerUsername" placeholder="Username"><br>
+        <input type="email" id="registerEmail" placeholder="Email"><br>
+        <input type="text" id="registerJobTitle" placeholder="Job Title"><br>
+        <input type="text" id="registerLocation" placeholder="Preferred Location"><br>
+        <input type="password" id="registerPassword" placeholder="Password"><br>
+        <div class="button-wrapper">
+            <button onclick="register()" class="submit-btn">Submit</button>
+        </div>
     </div>
 
     <div id="textResponse">
         awaiting response
     </div>
 </body>
+
 </html>
 
 
