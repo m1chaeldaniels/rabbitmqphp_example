@@ -1,12 +1,11 @@
-
+/* General Styles */
 body {
     font-family: 'Outfit', sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
+    background-color: #ffffff;
     color: #333;
 }
-
 
 header {
     background-color: #333;
@@ -41,63 +40,6 @@ nav ul li a:hover {
 }
 
 
-.profile-container {
-    max-width: 800px;
-    margin: 50px auto;
-    padding: 20px;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.profile-details h1 {
-    text-align: center;
-    font-size: 2em;
-    margin-bottom: 20px;
-}
-
-.profile-info p {
-    font-size: 1.2em;
-    margin: 10px 0;
-}
-
-.profile-info input {
-    font-size: 1.2em;
-    padding: 5px;
-    margin-top: 5px;
-    width: 100%;
-}
-
-.edit-profile, .save-profile {
-    display: block;
-    margin: 20px auto;
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.save-profile {
-    background-color: #28a745;
-}
-
-.edit-profile:hover {
-    background-color: #0056b3;
-}
-
-.save-profile:hover {
-    background-color: #218838;
-}
-
-footer {
-    background-color: #333;
-    color: white;
-    text-align: center;
-    padding: 10px 0;
-    margin-top: 40px;
-}
 
 /* Alerts Popup */
 .alerts-popup {
@@ -129,4 +71,49 @@ footer {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+}
+
+.close-btn:hover {
+    background-color: #164970;
+}
+
+/* Recommendations Page Styles */
+.recommendations-container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #f4f4f4;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.recommendations-section h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #1e5b87;
+}
+
+.recommendations-list {
+    text-align: center;
+    color: #888;
+}
+
+.job-listing {
+    margin-bottom: 20px;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.job-listing h2 {
+    color: #1e5b87;
+}
+
+footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+    margin-top: 40px;
 }
