@@ -22,7 +22,7 @@
                 <li><a href="companies.html">Research Companies</a></li>
                 <li><a href="recommendations.html">Recommendations</a></li>
                 <li><a href="#" onclick="toggleAlertsPopup()">Alerts</a></li>
-                <li><a href="#">Logout</a></li>
+                <li><a href="#" onclick="logout()">Logout</a></li>
             </ul>
         </nav>
     </header>
@@ -142,6 +142,42 @@
         } else {
             searchResults.innerHTML = '<p>No jobs found. Please try again.</p>';
         }
+    }
+
+    function logout() {
+        var sessionToken = localStorage.getItem('session_token');
+
+        if (!sessionToken) {
+            console.log("No user logged in.");
+            return;
+        }
+
+        var request = new XMLHttpRequest();
+        request.open("POST", "logout.php", true);
+        request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+        request.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                var response = JSON.parse(this.responseText);
+                if (response.success) {
+                    console.log("Logout successful: ", response.message);
+
+                    // Clear the session token and other data from localStorage
+                    localStorage.removeItem('session_token');
+                    localStorage.removeItem('username');
+                    localStorage.removeItem('email');
+                    localStorage.removeItem('location');
+                    localStorage.removeItem('jobTitle');
+
+                    // Redirect to index page
+                    window.location.href = "index.html";
+                } else {
+                    console.log("Logout failed: ", response.message);
+                }
+            }
+        };
+
+        request.send("session_token=" + sessionToken);
     }
     </script>
 </body>
