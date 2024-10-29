@@ -16,7 +16,7 @@ $search_params = array(
     'keywords' => 'lineman',
     'location' => 'South Plainfield,',
     'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12',  // Replace with your CareerJet affiliate ID
-    'pagesize' => 1,
+    'pagesize' => 2,
     //'sort'     => 'date' // Sort by date to get the latest jobs
 );
 

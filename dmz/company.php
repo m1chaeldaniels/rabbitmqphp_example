@@ -1,6 +1,7 @@
 <?php
+// This was a test example for company API to track Jobs
 
-$apiKey = 'nOSahf1USorOnh4cDw9TVb3WjLGKmLvMuOlbj4dWGPJBWelMv1buPnRNzHPzIQHXkgj4giHdKytOc8De-DWacvLtghlwXhdAZ8ABaWU10-WUSbfzMSUc6YuJPtYfZ3Yx';  // Replace with your actual API key
+//$apiKey = 'nOSahf1USorOnh4cDw9TVb3WjLGKmLvMuOlbj4dWGPJBWelMv1buPnRNzHPzIQHXkgj4giHdKytOc8De-DWacvLtghlwXhdAZ8ABaWU10-WUSbfzMSUc6YuJPtYfZ3Yx';  // Replace with your actual API key
 $companyName = 'Dunkin';  // Replace with the company name you want to search for
 $city = 'Clifton';  // Replace with the city name
 $state = 'NJ';  // Replace with the state abbreviation

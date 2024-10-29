@@ -16,10 +16,10 @@ $cjapi = new Careerjet_API('en_US');
 
 // Define search parameters to show all jobs
 $search_params = array(
-    'keywords' => 'software developer',
-    'location' => 'New Jersey',
+    'keywords' => 'lineman',
+    'location' => 'South Plainfield',
     'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12',  // Replace with your CareerJet affiliate ID
-    'pagesize' => 7, // Adjust the pagesize as needed (max is usually 99)
+    'pagesize' => 1, // Adjust the pagesize as needed (max is usually 99)
     'sort'     => 'date' // Sort by date to get the latest jobs
 );
 
