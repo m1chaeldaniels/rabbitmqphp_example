@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Companies</title>
+    <link rel="stylesheet" href="companies.css">
+</head>
+
+<body>
+    
+    <header>
+        <div class="logo">
+            <h1>RMMY</h1>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="homepage.html">Home</a></li>
+                <li><a href="profile.html">Profile</a></li>
+                <li><a href="search_jobs.html">Search Jobs</a></li>
+                <li><a href="companies.html">Research Companies</a></li>
+                <li><a href="recommendations.html">Recommendations</a></li>
+                <li><a href="reviews.html">Reviews</a></li>
+                <li><a href="#" onclick="logout()">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+    <div id="alertsPopup" class="alerts-popup" style="display: none;">
+        <div class="popup-content">
+            <h3>Alerts</h3>
+            <p>No new alerts at the moment.</p>
+            <button onclick="toggleAlertsPopup()" class="close-btn">Close</button>
+        </div>
+    </div>
+
+   
+    <main class="research-container">
+        <section class="research-section">
+            <h1>Research Companies</h1>
+
+     
+            <div class="search-bar">
+                <input type="text" id="companyName" placeholder="Enter company name">
+                <button onclick="searchCompanies()" class="search-btn">Search</button>
+            </div>
+
+       
+
+            
+            <div id="companyResults" class="company-results">
+                <p>No companies to display yet. Start searching!</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Job Application Tracker | All Rights Reserved</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+        var sessionToken = localStorage.getItem('session_token');
+        if (!sessionToken) {
+            
+            window.location.href = 'index.html';
+        } else {
+            
+            var request = new XMLHttpRequest();
+            request.open('POST', 'validateSession.php', true);
+            request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            request.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var response = JSON.parse(this.responseText);
+                    if (!response.success) {
+                        
+                        window.location.href = 'index.html';
+                    }
+                }
+            };
+            request.send('session_token=' + sessionToken);
+        }
+        });
+  
+            function toggleAlertsPopup() {
+                const popup = document.getElementById('alertsPopup');
+                popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+            }
+    
+      
+            let companyName = '';
+
+        function searchCompanies() {
+            companyName = document.getElementById('companyName').value;
+            sendCompanySearch(companyName);
+        }
+
+        function sendCompanySearch(companyName) {
+            var request = new XMLHttpRequest();
+            request.open("POST", "companySearch.php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            console.log("Sending request: ", "companyName=" + companyName);
+            
+            request.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    console.log("Response received: ", this.responseText);
+                    companySearchResponse(this.responseText);
+                }
+            };
+
+            request.send("companyName=" + encodeURIComponent(companyName));
+        }
+
+        function companySearchResponse(response) {
+            var data = JSON.parse(response);
+            const results = document.getElementById('companyResults');
+            results.innerHTML = '';
+
+            if (data.success && data.companies.length > 0) {
+                data.companies.forEach(company => {
+                    const companyDiv = document.createElement('div');
+                    companyDiv.classList.add('company');
+
+                    // Company Name
+                    const name = document.createElement('h3');
+                    name.textContent = company.name;
+                    companyDiv.appendChild(name);
+
+                    // Industry
+                    const industry = document.createElement('p');
+                    industry.innerHTML = `<strong>Industry:</strong> ${company.industry}`;
+                    companyDiv.appendChild(industry);
+
+                    // Headquarters
+                    const headquarters = document.createElement('p');
+                    headquarters.innerHTML = `<strong>Headquarters:</strong> ${company.headquarters}`;
+                    companyDiv.appendChild(headquarters);
+
+                    // Size
+                    const size = document.createElement('p');
+                    size.innerHTML = `<strong>Size:</strong> ${company.employee_size}`;
+                    companyDiv.appendChild(size);
+
+                    // Description
+                    const description = document.createElement('p');
+                    description.innerHTML = `<strong>Description:</strong> ${company.company_description}`;
+                    companyDiv.appendChild(description);
+
+                    // Website Link
+                    const website = document.createElement('a');
+                    website.href = company.website_link;
+                    website.target = '_blank';
+                    website.textContent = 'Visit Website';
+                    website.style.marginRight = '10px';
+                    companyDiv.appendChild(website);
+
+                    // LinkedIn Link
+                    const linkedin = document.createElement('a');
+                    linkedin.href = company.linkedin;
+                    linkedin.target = '_blank';
+                    linkedin.textContent = 'LinkedIn';
+                    companyDiv.appendChild(linkedin);
+
+                    
+
+                    results.appendChild(companyDiv);
+                });
+            } else {
+                results.innerHTML = '<p>No companies found. Please try again.</p>';
+            }
+        }
+
+        function logout() {
+            var sessionToken = localStorage.getItem('session_token');
+    
+            if (!sessionToken) {
+                console.log("No user logged in.");
+                return;
+            }
+    
+            var request = new XMLHttpRequest();
+            request.open("POST", "logout.php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    
+            request.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var response = JSON.parse(this.responseText);
+                    if (response.success) {
+                        console.log("Logout successful: ", response.message);
+    
+                        
+                        localStorage.removeItem('session_token');
+                        localStorage.removeItem('username');
+                        localStorage.removeItem('email');
+                        localStorage.removeItem('location');
+                        localStorage.removeItem('jobTitle');
+    
+                       
+                        window.location.href = "index.html";
+                    } else {
+                        console.log("Logout failed: ", response.message);
+                    }
+                }
+            };
+    
+            request.send("session_token=" + sessionToken);
+        }
+        
+    </script>
+</body>
+
+</html>
