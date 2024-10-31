@@ -1,4 +1,3 @@
-
 <?php
 
 require_once __DIR__ . '/vendor/autoload.php';
@@ -8,7 +7,6 @@ use PhpAmqpLib\Message\AMQPMessage;
 $connection = new AMQPStreamConnection('172.29.85.9', 5672, 'test', 'test', 'Sql-Post');
 $channel = $connection->channel();
 
-// Declare queues for job search
 $channel->queue_declare('jobSearch', false, false, false, false);
 $channel->queue_declare('responseJobSearch', false, false, false, false);
 
@@ -35,7 +33,6 @@ $callback = function ($msg) use ($channel) {
         return;
     }
 
-    // Search the total_jobs table for matching jobs
     $stmt = $mysqli->prepare("
         SELECT id, locations, site, date, url, title, description, company, salary, salary_min, salary_max, salary_type, salary_currency_code 
         FROM total_jobs 
@@ -50,9 +47,7 @@ $callback = function ($msg) use ($channel) {
     $result = $stmt->get_result();
     $jobs = [];
 
-    // Fetch matching jobs and store in an array
     while ($row = $result->fetch_assoc()) {
-        // Ensure URL slashes are not escaped
         $row['url'] = stripslashes($row['url']);
         $jobs[] = $row;
     }
@@ -82,6 +77,9 @@ function sendResponse($channel, $success, $message, $jobs) {
         'jobs' => $jobs
     ];
 
+    echo "Sending response to frontend:\n";
+    print_r($response);
+
     $msg = new AMQPMessage(json_encode($response, JSON_UNESCAPED_SLASHES));
     $channel->basic_publish($msg, '', 'responseJobSearch');
 }
@@ -98,3 +96,4 @@ $channel->close();
 $connection->close();
 
 ?>
+

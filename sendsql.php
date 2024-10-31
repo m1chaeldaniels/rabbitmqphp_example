@@ -6,7 +6,7 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 $mysqli = new mysqli("localhost", "testUser", "12345", "testdb");
 
-// Check MySQL connection
+// Check sql connection
 if ($mysqli->connect_error) {
     die("Connection failed: " . $mysqli->connect_error);
 }
@@ -31,7 +31,6 @@ if ($result->num_rows > 0) {
     echo "No results found.";
 }
 
-// Clean up
 $mysqli->close();
 $channel->close();
 $connection->close();

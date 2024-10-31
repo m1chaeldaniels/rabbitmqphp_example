@@ -15,7 +15,6 @@ echo " [*] Waiting for messages. To exit press CTRL+C\n";
 $callback = function ($msg) use ($channel){
     $data = json_decode($msg->body, true);
 
-    // Validate message format
     if (!isset($data['username'], $data['password'], $data['email'], $data['jobTitle'], $data['location'])) {
         echo "Invalid message format\n";
         sendMessage($channel, false, 'Invalid message format');
@@ -36,7 +35,6 @@ $callback = function ($msg) use ($channel){
         die("Connection failed: " . $mysqli->connect_error);
     }
 
-    // Check if the user already exists
     $stmt = $mysqli->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
@@ -45,16 +43,13 @@ $callback = function ($msg) use ($channel){
     $stmt->close();
 
     if ($count === 0) {
-        // Insert the new user into the users table
         $stmt = $mysqli->prepare("INSERT INTO users(username, password_hash, email) VALUES (?, ?, ?)");
         $stmt->bind_param("sss", $username, $password, $email);
 
         if ($stmt->execute()) {
-            // Get the inserted user ID
             $userId = $stmt->insert_id;
             $stmt->close();
 
-            // Insert job title and preferred location into the user_preferences table
             $stmt = $mysqli->prepare("INSERT INTO user_preferences(user_id, jobTitle, location) VALUES (?, ?, ?)");
             $stmt->bind_param("iss", $userId, $jobTitle, $location);
 
