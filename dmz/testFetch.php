@@ -1,23 +1,24 @@
 <?php
 
+// This file is to test whether I can receive jobs from the API
+
 require_once __DIR__ . '/jet_api/Careerjet_API.php';
 
-// Mock $_SERVER variables to simulate web server environment
 if (php_sapi_name() == 'cli') {
     $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
     $_SERVER['HTTP_USER_AGENT'] = 'CLI';
 }
 
-// Initialize CareerJet API with locale 'en_US' (for the United States)
+// Initialize CareerJet API 
 $cjapi = new Careerjet_API('en_US');
 
-// Define search parameters
+//  search parameters
 $search_params = array(
-    'keywords' => 'lineman',
-    'location' => 'South Plainfield,',
-    'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12',  // Replace with your CareerJet affiliate ID
-    'pagesize' => 1,
-    //'sort'     => 'date' // Sort by date to get the latest jobs
+    'keywords' => 'engineer',
+    'location' => 'New Jersey',
+    'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12',  //  affiliate ID
+    'pagesize' => 1, 
+    'sort'     => 'date' 
 );
 
 // Fetch job data from CareerJet API
@@ -26,7 +27,6 @@ $result = $cjapi->search($search_params);
 if ($result->type == 'JOBS') {
     $jobs = $result->jobs;
 
-    // Print job data
     echo "Got " . $result->hits . " jobs:\n\n";
     
     foreach ($jobs as $job) {

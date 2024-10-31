@@ -1,5 +1,7 @@
 <?php
 
+// This file is mainly just for testing communication to RabbitMQ
+
 require_once __DIR__ . '/vendor/autoload.php';
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
