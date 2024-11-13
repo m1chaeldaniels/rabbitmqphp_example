@@ -21,7 +21,7 @@ $affid = 'fcd2cacc0c8a6a59d9ea0d1fb45fea12';
 $pagesize = 1; // Adjust as needed
 $sort = 'date'; 
 
-$connection = new AMQPStreamConnection('172.29.85.9', 5672, 'test', 'test', 'Sql-Post');
+$connection = new AMQPStreamConnection('172.29.29.174', 5672, 'test', 'test', 'Sql-Post');
 $channel = $connection->channel();
 
 $channel->queue_declare('test1', false, false, false, false);
