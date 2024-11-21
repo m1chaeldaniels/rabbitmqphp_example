@@ -1,6 +1,7 @@
+#!/usr/bin/php
 <?php
 
-// THIS IS THE PHP FILE THAT FETCHES AND RECIEVES JOBS TO THE DATABASE
+// THIS IS THE PHP FILE THAT FETCHES AND RECEIVES JOBS TO THE DATABASE
 
 require_once __DIR__ . '/jet_api/Careerjet_API.php';
 require_once __DIR__ . '/vendor/autoload.php';
@@ -12,41 +13,58 @@ if (php_sapi_name() == 'cli') {
     $_SERVER['HTTP_USER_AGENT'] = 'CLI';
 }
 
-// Initialize CareerJet API 
-$cjapi = new Careerjet_API('en_US');
-
-// search parameters 
-$search_params = array(
-    'keywords' => 'engineer',
-    'location' => 'New Jersey',
-    'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12',  // affiliate ID
-    'pagesize' => 1, // Adjust the pagesize
-    'sort'     => 'date' 
-);
-
-// Fetch job data from CareerJet API
-$result = $cjapi->search($search_params);
-//$jobs = $result->jobs;
-//echo json_encode($jobs, JSON_UNESCAPED_SLASHES);
-
-if ($result->type == 'JOBS') {
-    $jobs = $result->jobs;
-
-    $connection = new AMQPStreamConnection('172.29.29.174', 5672, 'test', 'test', 'Sql-Post');
-    $channel = $connection->channel();
-
-    $channel->queue_declare('test1', false, false, false, false);
-
-    $message = new AMQPMessage(json_encode($jobs, JSON_UNESCAPED_SLASHES));
-
-    $channel->basic_publish($message, '', 'test1');
-
-    echo " [x] Job data sent to RabbitMQ\n";
-
-    $channel->close();
-    $connection->close();
-} else {
-    echo "Error fetching jobs: " . $result->error . "\n";
+function getRabbitMQConfig() {
+    $config = parse_ini_file("/etc/RabbitMQ.ini", true);
+    if (!isset($config['rabbitMQ'])) {
+        throw new Exception("RabbitMQ configuration for 'rabbitMQ' not found in INI file.");
+    }
+    return $config['rabbitMQ'];
 }
 
-?>
+try {
+    // Initialize CareerJet API 
+    $cjapi = new Careerjet_API('en_US');
+
+    // Search parameters 
+    $search_params = array(
+        'keywords' => 'Java Software Engineer',
+        'location' => 'New Jersey',
+        'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12', 
+        'pagesize' => 1, 
+        'sort'     => 'date' 
+    );
+
+    // Fetch job data from CareerJet API
+    $result = $cjapi->search($search_params);
+
+    if ($result->type == 'JOBS') {
+        $jobs = $result->jobs;
+        echo json_encode($jobs, JSON_UNESCAPED_SLASHES);
+
+        $config = getRabbitMQConfig();
+
+        $connection = new AMQPStreamConnection(
+            $config['host'],
+            $config['port'],
+            $config['username'],
+            $config['password'],
+            $config['vhost']
+        );
+        $channel = $connection->channel();
+
+        $queueName = 'test1';
+        $channel->queue_declare($queueName, false, false, false, false);
+
+        $message = new AMQPMessage(json_encode($jobs, JSON_UNESCAPED_SLASHES));
+        $channel->basic_publish($message, '', $queueName);
+
+        echo " [x] Job data sent to RabbitMQ\n";
+
+        $channel->close();
+        $connection->close();
+    } else {
+        echo "Error fetching jobs: " . $result->error . "\n";
+    }
+} catch (\Throwable $exception) {
+    echo "Error: " . $exception->getMessage() . "\n";
+}

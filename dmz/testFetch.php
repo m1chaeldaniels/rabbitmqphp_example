@@ -14,7 +14,7 @@ $cjapi = new Careerjet_API('en_US');
 
 //  search parameters
 $search_params = array(
-    'keywords' => 'engineer',
+    'keywords' => 'Java Software Engineer',
     'location' => 'New Jersey',
     'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12',  //  affiliate ID
     'pagesize' => 1, 
