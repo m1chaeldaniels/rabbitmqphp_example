@@ -1,102 +1,39 @@
+#!/usr/bin/php
 <?php
 
 require_once __DIR__ . '/vendor/autoload.php';
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
-$connection = new AMQPStreamConnection('172.29.85.9', 5672, 'test', 'test', 'Sql-Post');
-$channel = $connection->channel();
+function getRabbitMQConfig() {
+    $config = parse_ini_file("/etc/RabbitMQ.ini", true);
+    if (!isset($config['rabbitMQ'])) {
+        throw new Exception("RabbitMQ configuration for 'rabbitMQ' not found in INI file.");
+    }
+    return $config['rabbitMQ'];
+}
 
-$channel->queue_declare('recommendJobs', false, false, false, false);
-$channel->queue_declare('responseRecommendJobs', false, false, false, false);
+function sendResponse($channel, $queue, $success, $message, $jobs) {
+    $response = [
+        'success' => $success,
+        'message' => $message,
+        'jobs' => $jobs
+    ];
 
-echo " [*] Waiting for job recommendation requests. To exit press CTRL+C\n";
+    $jsonResponse = json_encode($response, JSON_UNESCAPED_SLASHES);
 
-$callback = function ($msg) use ($channel) {
-    $data = json_decode($msg->body, true);
-
-    if (!isset($data['username'])) {
-        echo "Invalid message format\n";
-        sendResponse($channel, false, "Invalid message format", []);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        $jsonError = json_last_error_msg();
+        echo "JSON Encoding Error: $jsonError\n";
+        echo "Response Data: " . print_r($response, true) . "\n";
         return;
     }
 
-    $username = $data['username'];
-    echo " [x] Received recommendation request for Username: $username\n";
+    echo "Sending JSON Response: $jsonResponse\n";
 
-    $mysqli = new mysqli('localhost', 'testUser', '12345', 'testdb');
-
-    if ($mysqli->connect_error) {
-        echo "Database connection failed: " . $mysqli->connect_error . "\n";
-        sendResponse($channel, false, "Database connection failed", []);
-        return;
-    }
-
-    updateCompanyRatings($mysqli);
-
-    $stmt = $mysqli->prepare("SELECT id FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $stmt->bind_result($user_id);
-    $stmt->fetch();
-    $stmt->close();
-
-    if (!$user_id) {
-        echo "User not found for Username: $username\n";
-        sendResponse($channel, false, "User not found", []);
-        $mysqli->close();
-        return;
-    }
-
-    echo "User ID for $username: $user_id\n";
-
-    $stmt = $mysqli->prepare("SELECT jobTitle, location FROM user_preferences WHERE user_id = ?");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $stmt->bind_result($preferredJobTitle, $preferredLocation);
-    $stmt->fetch();
-    $stmt->close();
-
-    if (!$preferredJobTitle || !$preferredLocation) {
-        echo "No preferences found for User ID: $user_id\n";
-        sendResponse($channel, false, "No preferences found", []);
-        $mysqli->close();
-        return;
-    }
-
-    echo "User Preferences - Job Title: $preferredJobTitle, Location: $preferredLocation\n";
-
-    $stmt = $mysqli->prepare("
-        SELECT tj.id, tj.locations, tj.site, tj.date, tj.url, tj.title, tj.description, tj.company, tj.salary, tj.salary_min, tj.salary_max, tj.salary_type, tj.salary_currency_code, ci.average_rating 
-        FROM total_jobs tj
-        LEFT JOIN company_info ci ON tj.company LIKE CONCAT('%', ci.name, '%')
-        WHERE tj.title LIKE ? AND tj.locations LIKE ?
-        ORDER BY ci.average_rating DESC
-    ");
-
-    $jobTitleParam = "%$preferredJobTitle%";
-    $locationParam = "%$preferredLocation%";
-    $stmt->bind_param("ss", $jobTitleParam, $locationParam);
-    $stmt->execute();
-
-    $result = $stmt->get_result();
-    $recommendedJobs = [];
-
-    while ($row = $result->fetch_assoc()) {
-        $recommendedJobs[] = $row;
-    }
-
-    $stmt->close();
-    $mysqli->close();
-
-    if (!empty($recommendedJobs)) {
-        echo "Found " . count($recommendedJobs) . " matching jobs for Username: $username\n";
-        sendResponse($channel, true, "Recommendations found", $recommendedJobs);
-    } else {
-        echo "No matching jobs found for Username: $username\n";
-        sendResponse($channel, false, "No matching jobs found", []);
-    }
-};
+    $msg = new AMQPMessage($jsonResponse);
+    $channel->basic_publish($msg, '', $queue);
+}
 
 function updateCompanyRatings($mysqli) {
     $sql = "
@@ -116,39 +53,117 @@ function updateCompanyRatings($mysqli) {
     }
 }
 
+try {
+    $config = getRabbitMQConfig();
 
+    $connection = new AMQPStreamConnection(
+        $config['host'],
+        $config['port'],
+        $config['username'],
+        $config['password'],
+        $config['vhost']
+    );
+    $channel = $connection->channel();
 
-function sendResponse($channel, $success, $message, $jobs) {
-    $response = [
-        'success' => $success,
-        'message' => $message,
-        'jobs' => $jobs
-    ];
+    $queueRecommendJobs = 'recommendJobs';
+    $queueResponseRecommendJobs = 'responseRecommendJobs';
 
-    $jsonResponse = json_encode($response, JSON_UNESCAPED_SLASHES);
+    $channel->queue_declare($queueRecommendJobs, false, false, false, false);
+    $channel->queue_declare($queueResponseRecommendJobs, false, false, false, false);
 
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        $jsonError = json_last_error_msg();
-        echo "JSON Encoding Error: $jsonError\n";
-        echo "Response Data: " . print_r($response, true) . "\n";
-        return;
+    echo " [*] Waiting for job recommendation requests. To exit press CTRL+C\n";
+
+    $callback = function ($msg) use ($channel, $queueResponseRecommendJobs) {
+        $data = json_decode($msg->body, true);
+
+        if (!isset($data['username'])) {
+            echo "Invalid message format\n";
+            sendResponse($channel, $queueResponseRecommendJobs, false, "Invalid message format", []);
+            return;
+        }
+
+        $username = $data['username'];
+        echo " [x] Received recommendation request for Username: $username\n";
+
+        $mysqli = new mysqli('localhost', 'testUser', '12345', 'testdb');
+
+        if ($mysqli->connect_error) {
+            echo "Database connection failed: " . $mysqli->connect_error . "\n";
+            sendResponse($channel, $queueResponseRecommendJobs, false, "Database connection failed", []);
+            return;
+        }
+
+        updateCompanyRatings($mysqli);
+
+        $stmt = $mysqli->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
+        $stmt->bind_result($user_id);
+        $stmt->fetch();
+        $stmt->close();
+
+        if (!$user_id) {
+            echo "User not found for Username: $username\n";
+            sendResponse($channel, $queueResponseRecommendJobs, false, "User not found", []);
+            $mysqli->close();
+            return;
+        }
+
+        $stmt = $mysqli->prepare("SELECT jobTitle, location FROM user_preferences WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $stmt->bind_result($preferredJobTitle, $preferredLocation);
+        $stmt->fetch();
+        $stmt->close();
+
+        if (!$preferredJobTitle || !$preferredLocation) {
+            echo "No preferences found for User ID: $user_id\n";
+            sendResponse($channel, $queueResponseRecommendJobs, false, "No preferences found", []);
+            $mysqli->close();
+            return;
+        }
+
+        $stmt = $mysqli->prepare("
+            SELECT tj.id, tj.locations, tj.site, tj.date, tj.url, tj.title, tj.description, tj.company, tj.salary, tj.salary_min, tj.salary_max, tj.salary_type, tj.salary_currency_code, ci.average_rating 
+            FROM total_jobs tj
+            LEFT JOIN company_info ci ON tj.company LIKE CONCAT('%', ci.name, '%')
+            WHERE tj.title LIKE ? AND tj.locations LIKE ?
+            ORDER BY ci.average_rating DESC
+        ");
+
+        $jobTitleParam = "%$preferredJobTitle%";
+        $locationParam = "%$preferredLocation%";
+        $stmt->bind_param("ss", $jobTitleParam, $locationParam);
+        $stmt->execute();
+
+        $result = $stmt->get_result();
+        $recommendedJobs = [];
+
+        while ($row = $result->fetch_assoc()) {
+            $recommendedJobs[] = $row;
+        }
+
+        $stmt->close();
+        $mysqli->close();
+
+        if (!empty($recommendedJobs)) {
+            echo "Found " . count($recommendedJobs) . " matching jobs for Username: $username\n";
+            sendResponse($channel, $queueResponseRecommendJobs, true, "Recommendations found", $recommendedJobs);
+        } else {
+            echo "No matching jobs found for Username: $username\n";
+            sendResponse($channel, $queueResponseRecommendJobs, false, "No matching jobs found", []);
+        }
+    };
+
+    $channel->basic_consume($queueRecommendJobs, '', false, true, false, false, $callback);
+
+    while ($channel->is_consuming()) {
+        $channel->wait();
     }
 
-    echo "Sending JSON Response: $jsonResponse\n";
+    $channel->close();
+    $connection->close();
 
-    $msg = new AMQPMessage($jsonResponse);
-    $channel->basic_publish($msg, '', 'responseRecommendJobs');
-}
-
-$channel->basic_consume('recommendJobs', '', false, true, false, false, $callback);
-
-try {
-    $channel->consume();
 } catch (\Throwable $exception) {
-    echo $exception->getMessage();
+    echo "Error: " . $exception->getMessage() . "\n";
 }
-
-$channel->close();
-$connection->close();
-
-?>

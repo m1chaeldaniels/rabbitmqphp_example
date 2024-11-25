@@ -1,66 +1,90 @@
+#!/usr/bin/php
 <?php
 
 require_once __DIR__ . '/vendor/autoload.php';
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
-$connection = new AMQPStreamConnection('172.29.85.9', 5672, 'test', 'test', 'Sql-Post');
-$channel = $connection->channel();
-
-$channel->queue_declare('logoutQueue', false, false, false, false);
-$channel->queue_declare('responseLogout', false, false, false, false);
-
-echo " [*] Waiting for logout messages. To exit press CTRL+C\n";
-
-$callback = function ($msg) use ($channel) {
-    $data = json_decode($msg->body, true);
-
-    // grabs the session token from the message received
-    if (!isset($data['session_token'])) {
-        sendMessage($channel, false, 'Invalid message format');
-        return;
+function getRabbitMQConfig() {
+    $config = parse_ini_file("/etc/RabbitMQ.ini", true);
+    if (!isset($config['rabbitMQ'])) {
+        throw new Exception("RabbitMQ configuration for 'rabbitMQ' not found in INI file.");
     }
+    return $config['rabbitMQ'];
+}
 
-    $sessionToken = $data['session_token'];
-
-    $mysqli = new mysqli('localhost', 'testUser', '12345', 'testdb');
-
-    if ($mysqli->connect_error) {
-        sendMessage($channel, false, 'Database connection failed');
-        return;
-    }
-
-
-    // makes both the token and its expire time null
-    $stmt = $mysqli->prepare("UPDATE users SET session_token = NULL, token_expiry = NULL WHERE session_token = ?");
-    $stmt->bind_param("s", $sessionToken);
-
-    if ($stmt->execute()) {
-        sendMessage($channel, true, 'Logout successful');
-    } else {
-        sendMessage($channel, false, 'Failed to log out');
-    }
-
-    $stmt->close();
-    $mysqli->close();
-};
-
-function sendMessage($channel, $success, $message) {
+function sendMessage($channel, $queue, $success, $message) {
     $response = [
         'success' => $success,
         'message' => $message
     ];
+    echo "Sending response: " . json_encode($response) . "\n";
     $msg = new AMQPMessage(json_encode($response, JSON_UNESCAPED_SLASHES));
-    $channel->basic_publish($msg, '', 'responseLogout');
+    $channel->basic_publish($msg, '', $queue);
 }
 
-$channel->basic_consume('logoutQueue', '', false, true, false, false, $callback);
+try {
+    $config = getRabbitMQConfig();
 
-while ($channel->is_consuming()) {
-    $channel->wait();
+    $connection = new AMQPStreamConnection(
+        $config['host'],
+        $config['port'],
+        $config['username'],
+        $config['password'],
+        $config['vhost']
+    );
+    $channel = $connection->channel();
+
+    $queueLogout = 'logoutQueue';
+    $queueResponseLogout = 'responseLogout';
+
+    $channel->queue_declare($queueLogout, false, false, false, false);
+    $channel->queue_declare($queueResponseLogout, false, false, false, false);
+
+    echo " [*] Waiting for logout messages. To exit press CTRL+C\n";
+
+    $callback = function ($msg) use ($channel, $queueResponseLogout) {
+        $data = json_decode($msg->body, true);
+
+        if (!isset($data['session_token'])) {
+            echo "Invalid message format\n";
+            sendMessage($channel, $queueResponseLogout, false, 'Invalid message format');
+            return;
+        }
+
+        $sessionToken = $data['session_token'];
+
+        $mysqli = new mysqli('localhost', 'testUser', '12345', 'testdb');
+        if ($mysqli->connect_error) {
+            echo "Database connection failed: " . $mysqli->connect_error . "\n";
+            sendMessage($channel, $queueResponseLogout, false, 'Database connection failed');
+            return;
+        }
+
+        $stmt = $mysqli->prepare("UPDATE users SET session_token = NULL, token_expiry = NULL WHERE session_token = ?");
+        $stmt->bind_param("s", $sessionToken);
+
+        if ($stmt->execute()) {
+            echo "Logout successful for session token: $sessionToken\n";
+            sendMessage($channel, $queueResponseLogout, true, 'Logout successful');
+        } else {
+            echo "Failed to log out for session token: $sessionToken\n";
+            sendMessage($channel, $queueResponseLogout, false, 'Failed to log out');
+        }
+
+        $stmt->close();
+        $mysqli->close();
+    };
+
+    $channel->basic_consume($queueLogout, '', false, true, false, false, $callback);
+
+    while ($channel->is_consuming()) {
+        $channel->wait();
+    }
+
+    $channel->close();
+    $connection->close();
+
+} catch (\Throwable $exception) {
+    echo "Error: " . $exception->getMessage() . "\n";
 }
-
-$channel->close();
-$connection->close();
-
-?>

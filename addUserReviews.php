@@ -1,86 +1,31 @@
+#!/usr/bin/php
 <?php
 
 require_once __DIR__ . '/vendor/autoload.php';
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
-$connection = new AMQPStreamConnection('172.29.85.9', 5672, 'test', 'test', 'Sql-Post');
-$channel = $connection->channel();
-
-$channel->queue_declare('submitReview', false, false, false, false);
-$channel->queue_declare('responseSubmitReview', false, false, false, false);
-
-echo " [*] Waiting for user review messages. To exit press CTRL+C\n";
-
-$callback = function ($msg) use ($channel) {
-    echo ' [x] Received ', $msg->getBody(), "\n";
-
-    $data = json_decode($msg->getBody(), true);
-
-    if (json_last_error() !== JSON_ERROR_NONE || !isset($data['username'], $data['companyName'], $data['rating'], $data['reviewText'])) {
-        echo "Error decoding JSON or missing required fields\n";
-        sendResponse($channel, false, "Invalid message format");
-        return;
+function getRabbitMQConfig() {
+    $config = parse_ini_file("/etc/RabbitMQ.ini", true);
+    if (!isset($config['rabbitMQ'])) {
+        throw new Exception("RabbitMQ configuration for 'rabbitMQ' not found in INI file.");
     }
+    return $config['rabbitMQ'];
+}
 
-    $username = $data['username'];
-    $companyName = $data['companyName'];
-    $rating = (int)$data['rating'];
-    $reviewText = $data['reviewText'];
+function sendResponse($channel, $queue, $success, $message, $data = []) {
+    $response = [
+        'success' => $success,
+        'message' => $message,
+        'data' => $data,
+    ];
 
-    if ($rating < 1 || $rating > 5) {
-        echo "Invalid rating value\n";
-        sendResponse($channel, false, "Rating must be between 1 and 5");
-        return;
-    }
+    echo "Sending response to frontend:\n";
+    print_r($response);
 
-    $mysqli = new mysqli('localhost', 'testUser', '12345', 'testdb');
-
-    if ($mysqli->connect_error) {
-        echo "Database connection failed: " . $mysqli->connect_error . "\n";
-        sendResponse($channel, false, "Database connection failed");
-        return;
-    }
-
-    $user_id = getUserID($mysqli, $username);
-    if (!$user_id) {
-        echo "User not found for username: $username\n";
-        sendResponse($channel, false, "User not found");
-        $mysqli->close();
-        return;
-    }
-
-    $company_id = getCompanyID($mysqli, $companyName);
-    if (!$company_id) {
-        echo "Company not found for name: $companyName\n";
-        sendResponse($channel, false, "Company not found");
-        $mysqli->close();
-        return;
-    }
-
-    $existingReview = checkExistingReview($mysqli, $user_id, $company_id);
-    if ($existingReview) {
-        echo "Review already exists for user ID: $user_id and company ID: $company_id\n";
-        sendResponse($channel, false, "Review already exists for this company");
-        $mysqli->close();
-        return;
-    }
-
-    $insertSql = "INSERT INTO user_reviews (user_id, company_id, company_name, rating, review_text) VALUES (?, ?, ?, ?, ?)";
-    $stmt = $mysqli->prepare($insertSql);
-    $stmt->bind_param("iisis", $user_id, $company_id, $companyName, $rating, $reviewText);
-
-    if ($stmt->execute()) {
-        echo "Review added by user ID: $user_id for company ID: $company_id with company name: $companyName\n";
-        sendResponse($channel, true, "Review added successfully");
-    } else {
-        echo "Failed to add review\n";
-        sendResponse($channel, false, "Failed to add review");
-    }
-
-    $stmt->close();
-    $mysqli->close();
-};
+    $msg = new AMQPMessage(json_encode($response, JSON_UNESCAPED_SLASHES));
+    $channel->basic_publish($msg, '', $queue);
+}
 
 function getUserID($mysqli, $username) {
     $sql = "SELECT id FROM users WHERE username = ?";
@@ -119,29 +64,105 @@ function checkExistingReview($mysqli, $user_id, $company_id) {
     return $exists;
 }
 
-function sendResponse($channel, $success, $message, $data = []) {
-    $response = [
-        'success' => $success,
-        'message' => $message,
-        'data' => $data,
-    ];
-
-    echo "Sending response to frontend:\n";
-    print_r($response);
-
-    $msg = new AMQPMessage(json_encode($response, JSON_UNESCAPED_SLASHES));
-    $channel->basic_publish($msg, '', 'responseSubmitReview');
-}
-
-$channel->basic_consume('submitReview', '', false, true, false, false, $callback);
-
 try {
-    $channel->consume();
+    $config = getRabbitMQConfig();
+
+    $connection = new AMQPStreamConnection(
+        $config['host'],
+        $config['port'],
+        $config['username'],
+        $config['password'],
+        $config['vhost']
+    );
+    $channel = $connection->channel();
+
+    $queueSubmitReview = 'submitReview';
+    $queueResponseSubmitReview = 'responseSubmitReview';
+
+    $channel->queue_declare($queueSubmitReview, false, false, false, false);
+    $channel->queue_declare($queueResponseSubmitReview, false, false, false, false);
+
+    echo " [*] Waiting for user review messages. To exit press CTRL+C\n";
+
+    $callback = function ($msg) use ($channel, $queueResponseSubmitReview) {
+        echo ' [x] Received ', $msg->getBody(), "\n";
+
+        $data = json_decode($msg->getBody(), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !isset($data['username'], $data['companyName'], $data['rating'], $data['reviewText'])) {
+            echo "Error decoding JSON or missing required fields\n";
+            sendResponse($channel, $queueResponseSubmitReview, false, "Invalid message format");
+            return;
+        }
+
+        $username = $data['username'];
+        $companyName = $data['companyName'];
+        $rating = (int)$data['rating'];
+        $reviewText = $data['reviewText'];
+
+        if ($rating < 1 || $rating > 5) {
+            echo "Invalid rating value\n";
+            sendResponse($channel, $queueResponseSubmitReview, false, "Rating must be between 1 and 5");
+            return;
+        }
+
+        $mysqli = new mysqli('localhost', 'testUser', '12345', 'testdb');
+
+        if ($mysqli->connect_error) {
+            echo "Database connection failed: " . $mysqli->connect_error . "\n";
+            sendResponse($channel, $queueResponseSubmitReview, false, "Database connection failed");
+            return;
+        }
+
+        $user_id = getUserID($mysqli, $username);
+        if (!$user_id) {
+            echo "User not found for username: $username\n";
+            sendResponse($channel, $queueResponseSubmitReview, false, "User not found");
+            $mysqli->close();
+            return;
+        }
+
+        $company_id = getCompanyID($mysqli, $companyName);
+        if (!$company_id) {
+            echo "Company not found for name: $companyName\n";
+            sendResponse($channel, $queueResponseSubmitReview, false, "Company not found");
+            $mysqli->close();
+            return;
+        }
+
+        $existingReview = checkExistingReview($mysqli, $user_id, $company_id);
+        if ($existingReview) {
+            echo "Review already exists for user ID: $user_id and company ID: $company_id\n";
+            sendResponse($channel, $queueResponseSubmitReview, false, "Review already exists for this company");
+            $mysqli->close();
+            return;
+        }
+
+        $insertSql = "INSERT INTO user_reviews (user_id, company_id, company_name, rating, review_text) VALUES (?, ?, ?, ?, ?)";
+        $stmt = $mysqli->prepare($insertSql);
+        $stmt->bind_param("iisis", $user_id, $company_id, $companyName, $rating, $reviewText);
+
+        if ($stmt->execute()) {
+            echo "Review added by user ID: $user_id for company ID: $company_id with company name: $companyName\n";
+            sendResponse($channel, $queueResponseSubmitReview, true, "Review added successfully");
+        } else {
+            echo "Failed to add review\n";
+            sendResponse($channel, $queueResponseSubmitReview, false, "Failed to add review");
+        }
+
+        $stmt->close();
+        $mysqli->close();
+    };
+
+    $channel->basic_consume($queueSubmitReview, '', false, true, false, false, $callback);
+
+    while ($channel->is_consuming()) {
+        $channel->wait();
+    }
+
+    $channel->close();
+    $connection->close();
+
 } catch (\Throwable $exception) {
-    echo $exception->getMessage();
+    echo "Error: " . $exception->getMessage() . "\n";
 }
-
-$channel->close();
-$connection->close();
-
-?>

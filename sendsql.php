@@ -6,7 +6,6 @@ use PhpAmqpLib\Message\AMQPMessage;
 
 $mysqli = new mysqli("localhost", "testUser", "12345", "testdb");
 
-// Check sql connection
 if ($mysqli->connect_error) {
     die("Connection failed: " . $mysqli->connect_error);
 }
@@ -22,7 +21,7 @@ $result = $mysqli->query($sql);
 
 if ($result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
-        $messageBody = $row['name']; // Modify as needed
+        $messageBody = $row['name'];
         $msg = new AMQPMessage($messageBody);
         $channel->basic_publish($msg, '', 'your_queue');
         echo "Sent: $messageBody\n";

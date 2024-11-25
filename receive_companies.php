@@ -4,7 +4,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
-$connection = new AMQPStreamConnection('172.29.85.9', 5672, 'test', 'test', 'Sql-Post');
+$connection = new AMQPStreamConnection('172.29.29.174', 5672, 'test', 'test', 'Sql-Post');
 $channel = $connection->channel();
 
 $channel->queue_declare('test2', false, false, false, false);
@@ -72,7 +72,6 @@ $callback = function ($msg) {
     $mysqli->close();
 };
 
-//check if a company  exists
 function isCompanyExists($mysqli, $companyName) {
     $sql = "SELECT 1 FROM company_info WHERE name = ?";
     $stmt = $mysqli->prepare($sql);
