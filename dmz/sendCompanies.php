@@ -1,13 +1,28 @@
 <?php
 
-// THIS PHP FIND SENDS COMPANY INFORMATION TO THE DATABASE VIA CSV FILE
+ini_set('log_errors', 'On');
+ini_set('error_log', '/home/malin/Desktop/Error_Log/php-error.log');
 
-require_once __DIR__ . '/vendor/autoload.php'; 
+ini_set('display_errors', 'On');
+ini_set('display_startup_errors', 'On');
+error_reporting(E_ALL);
+
+// THIS PHP FILE SENDS COMPANY INFORMATION TO THE DATABASE VIA CSV FILE
+
+require_once __DIR__ . '/vendor/autoload.php';
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
-$csvFile = 'companies.csv';
 
+function getRabbitMQConfig() {
+    $config = parse_ini_file("/etc/RabbitMQ.ini", true);
+    if (!isset($config['rabbitMQ'])) {
+        throw new Exception("RabbitMQ configuration for 'rabbitMQ' not found in INI file.");
+    }
+    return $config['rabbitMQ'];
+}
+
+$csvFile = 'companies.csv';
 $companies = [];
 
 if (($handle = fopen($csvFile, 'r')) !== FALSE) {
@@ -25,19 +40,26 @@ if (($handle = fopen($csvFile, 'r')) !== FALSE) {
 
 $jsonData = json_encode($companies, JSON_PRETTY_PRINT);
 
-
-
 try {
-    $connection = new AMQPStreamConnection('172.29.29.174', 5672, 'test', 'test', 'Sql-Post');
-    $channel = $connection->channel();
+    $config = getRabbitMQConfig();
 
-    $channel->queue_declare('test2', false, false, false, false);
+    $connection = new AMQPStreamConnection(
+        $config['host'],
+        $config['port'],
+        $config['username'],
+        $config['password'],
+        $config['vhost']
+    );
+
+    $channel = $connection->channel();
+    $queueName = 'test2';
+
+    $channel->queue_declare($queueName, false, false, false, false);
 
     $message = new AMQPMessage($jsonData);
+    $channel->basic_publish($message, '', $queueName);
 
-    $channel->basic_publish($message, '', 'test2');
-
-    echo " [x] Job data sent to RabbitMQ\n";
+    echo " [x] Company data sent to RabbitMQ\n";
 
     $channel->close();
     $connection->close();
@@ -45,4 +67,3 @@ try {
 } catch (Exception $e) {
     echo 'Error: ' . $e->getMessage() . "\n";
 }
-?>

@@ -1,52 +1,97 @@
 <?php
 
-// THIS IS THE PHP FILE THAT FETCHES AND RECIEVES JOBS TO THE DATABASE
+// THIS IS THE PHP FILE THAT FETCHES AND RECEIVES JOBS TO THE DATABASE (This is the development one)
+
+ini_set('log_errors', 'On');
+ini_set('error_log', '/home/malin/Desktop/Error_Log/php-error.log');
+
+ini_set('display_errors', 'On');
+ini_set('display_startup_errors', 'On');
+error_reporting(E_ALL);
 
 require_once __DIR__ . '/jet_api/Careerjet_API.php';
 require_once __DIR__ . '/vendor/autoload.php';
+
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
-if (php_sapi_name() == 'cli') {
-    $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
-    $_SERVER['HTTP_USER_AGENT'] = 'CLI';
+function getRabbitMQConfig() {
+    $config = parse_ini_file("/etc/RabbitMQ.ini", true);
+    if (!isset($config['rabbitMQ'])) {
+        throw new Exception("RabbitMQ configuration for 'rabbitMQ' not found in INI file.");
+    }
+    return $config['rabbitMQ'];
 }
 
-// Initialize CareerJet API 
+// Initialize CareerJet API
 $cjapi = new Careerjet_API('en_US');
 
-// search parameters 
-$search_params = array(
-    'keywords' => 'Java Software Engineer',
-    'location' => 'New Jersey',
-    'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12',  // affiliate ID
-    'pagesize' => 1, // Adjust the pagesize
-    'sort'     => 'date' 
-);
+$keywords = ['Java Software Engineer', 'PHP Developer', 'DevOps Engineer']; 
+$locations = ['New Jersey', 'New York', 'California']; 
 
-// Fetch job data from CareerJet API
-$result = $cjapi->search($search_params);
-//$jobs = $result->jobs;
-//echo json_encode($jobs, JSON_UNESCAPED_SLASHES);
+$results = [];
 
-if ($result->type == 'JOBS') {
-    $jobs = $result->jobs;
+// Loop through all keyword-location combinations
+foreach ($keywords as $keyword) {
+    foreach ($locations as $location) {
+        echo "Searching for: $keyword in $location...\n";
 
-    $connection = new AMQPStreamConnection('10.147.17.214', 5672, 'test', 'test', 'Sql-Post');
-    $channel = $connection->channel();
+        // Search parameters
+        $search_params = array(
+            'keywords' => $keyword,
+            'location' => $location,
+            'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12',
+            'pagesize' => 1,
+            'sort'     => 'date'
+        );
 
-    $channel->queue_declare('test1', false, false, false, false);
+        try {
+            $result = $cjapi->search($search_params);
 
-    $message = new AMQPMessage(json_encode($jobs, JSON_UNESCAPED_SLASHES));
+            if ($result->type == 'JOBS' && !empty($result->jobs)) {
+                $jobs = $result->jobs;
+                $results[] = ['keyword' => $keyword, 'location' => $location, 'jobs' => $jobs];
+            } else {
+                echo "No jobs found for $keyword in $location.\n";
+            }
+        } catch (\Throwable $exception) {
+            echo "Error: " . $exception->getMessage() . "\n";
+        }
+    }
+}
 
-    $channel->basic_publish($message, '', 'test1');
+if (!empty($results)) {
+    $jsonData = json_encode($results, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 
-    echo " [x] Job data sent to RabbitMQ\n";
+    try {
+        $config = getRabbitMQConfig();
 
-    $channel->close();
-    $connection->close();
+        $connection = new AMQPStreamConnection(
+            $config['host'],
+            $config['port'],
+            $config['username'],
+            $config['password'],
+            $config['vhost']
+        );
+
+        $channel = $connection->channel();
+        $queueName = 'test1';
+
+        $channel->queue_declare($queueName, false, false, false, false);
+
+        $message = new AMQPMessage($jsonData);
+        $channel->basic_publish($message, '', $queueName);
+
+        echo " [x] Job data sent to RabbitMQ\n";
+
+        $channel->close();
+        $connection->close();
+
+    } catch (Exception $e) {
+        echo 'Error: ' . $e->getMessage() . "\n";
+    }
 } else {
-    echo "Error fetching jobs: " . $result->error . "\n";
+    echo "No job data to send.\n";
 }
 
 ?>

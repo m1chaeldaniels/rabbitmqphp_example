@@ -1,5 +1,11 @@
-#!/usr/bin/php
 <?php
+
+ini_set('log_errors', 'On');
+ini_set('error_log', '/home/malin/Desktop/Error_Log/php-error.log');
+
+ini_set('display_errors', 'On');
+ini_set('display_startup_errors', 'On');
+error_reporting(E_ALL);
 
 // This file is mainly just for testing communication to RabbitMQ
 
@@ -16,10 +22,8 @@ function getRabbitMQConfig() {
 }
 
 try {
-    // Load RabbitMQ configuration
     $config = getRabbitMQConfig();
 
-    // RabbitMQ connection settings
     $connection = new AMQPStreamConnection(
         $config['host'],
         $config['port'],
@@ -29,18 +33,15 @@ try {
     );
     $channel = $connection->channel();
 
-    // Declare queue
     $queueTest = 'test1';
     $channel->queue_declare($queueTest, false, false, false, false);
 
-    // Test message
     $testMessage = 'Hello Rudys!';
     $msg = new AMQPMessage($testMessage);
     $channel->basic_publish($msg, '', $queueTest);
 
     echo " [x] Sent '$testMessage'\n";
 
-    // Close channel and connection
     $channel->close();
     $connection->close();
 

@@ -1,5 +1,11 @@
-#!/usr/bin/php
 <?php
+
+ini_set('log_errors', 'On');
+ini_set('error_log', '/home/malin/Desktop/Error_Log/php-error.log');
+
+ini_set('display_errors', 'On');
+ini_set('display_startup_errors', 'On');
+error_reporting(E_ALL);
 
 // THIS IS THE PHP FILE THAT FETCHES AND RECEIVES JOBS TO THE DATABASE
 
@@ -34,7 +40,6 @@ try {
         'sort'     => 'date' 
     );
 
-    // Fetch job data from CareerJet API
     $result = $cjapi->search($search_params);
 
     if ($result->type == 'JOBS') {
