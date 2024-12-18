@@ -42,7 +42,7 @@ try {
     $callback = function ($msg) use ($channel) {
         $data = json_decode($msg->body, true);
 
-        if (!isset($data['username'], $data['password'], $data['email'], $data['jobTitle'], $data['location'])) {
+        if (!isset($data['username'], $data['password'], $data['email'], $data['jobTitle'], $data['location'], $data['phone'])) {
             echo "Invalid message format\n";
             sendMessage($channel, 'responseRegister', false, 'Invalid message format');
             return;
@@ -53,6 +53,7 @@ try {
         $email = $data['email'];
         $jobTitle = $data['jobTitle'];
         $location = $data['location'];
+        $phoneNumber = $data['phone'];
 
         echo " [x] Received ", $msg->getBody(), "\n";
 
@@ -74,8 +75,9 @@ try {
             echo "User $username or email $email already exists \n";
             sendMessage($channel, 'responseRegister', false, 'User or email already exists');
         } else {
-            $stmt = $mysqli->prepare("INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)");
-            $stmt->bind_param("sss", $username, $password, $email);
+            // Insert user with phone number
+            $stmt = $mysqli->prepare("INSERT INTO users (username, password_hash, email, phone_number) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssss", $username, $password, $email, $phoneNumber);
             if ($stmt->execute()) {
                 $userId = $stmt->insert_id;
                 $stmt->close();
