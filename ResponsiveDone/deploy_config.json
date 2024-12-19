@@ -1,0 +1,13 @@
+{
+    "destination": "/var/www/sample",
+    "files": [
+        "index.css"
+        
+    ],
+    "commands": [
+    ],
+    "processes": [
+        "apache2.service"
+    ]
+}
+
