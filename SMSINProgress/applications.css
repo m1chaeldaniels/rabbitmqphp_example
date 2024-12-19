@@ -1,0 +1,94 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #1e1e1e;
+    color: #f8f9fa;
+}
+
+header .navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+header .logo {
+    text-align: center;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    color: #28a745 !important;
+}
+
+nav ul {
+    list-style-type: none;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+nav ul li {
+    display: inline;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+}
+
+nav ul li a:hover {
+    background-color: #555;
+    border-radius: 5px;
+}
+
+
+/* Section Styling */
+.custom-card {
+    
+    border: 1px solid #2a2a2a;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Application Card */
+.application-card {
+    background-color: #2a2a2a;
+    border: 1px solid #333;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.application-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.6);
+}
+
+.application-card h3 {
+    color: #28a745;
+    font-size: 1.2rem;
+}
+
+.application-card p {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.application-card a {
+    text-decoration: none;
+    color: #28a745;
+    transition: all 0.3s ease;
+}
+
+.application-card a:hover {
+    color: #218838;
+    text-decoration: underline;
+}
+
+
+footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+    margin-top: 40px;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}

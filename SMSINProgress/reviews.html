@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Reviews</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="reviews.css">
+</head>
+
+<body class="bg-dark text-light">
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="homepage.html">RMMY</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item"><a class="nav-link" href="homepage.html">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
+                        <li class="nav-item"><a class="nav-link" href="search_jobs.html">Search Jobs</a></li>
+                        <li class="nav-item"><a class="nav-link" href="applications.html">Applications</a></li>
+                        <li class="nav-item"><a class="nav-link" href="companies.html">Research Companies</a></li>
+                        <li class="nav-item"><a class="nav-link" href="recommendations.html">Recommendations</a></li>
+                        <li class="nav-item"><a class="nav-link" href="reviews.html">Reviews</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    
+    <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+    <div id="alertsPopup" class="alerts-popup" style="display: none;">
+        <div class="popup-content">
+            <h3>Alerts</h3>
+            <p>No new alerts at the moment.</p>
+            <button onclick="toggleAlertsPopup()" class="close-btn">Close</button>
+        </div>
+    </div>
+
+    <main class="container my-5">
+        <section class="custom-card p-4 rounded-4 shadow-lg">
+            <h1 class="text-success text-center fw-bold mb-4">Company Reviews</h1>
+            <div class="search-bar d-flex justify-content-center mb-4">
+                <input type="text" id="companyName" class="form-control w-50 me-2" placeholder="Enter company name">
+                <button onclick="searchReviews()" class="btn btn-success">Search</button>
+            </div>
+            <div id="companyResults" class="text-light">
+                <p class="text-center">No companies to display yet. Start searching!</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-dark text-white text-center py-3 mt-auto">
+        <div class="container">
+            <p class="mb-0">&copy; 2024 Job Application Tracker | All Rights Reserved</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+        var sessionToken = localStorage.getItem('session_token');
+        if (!sessionToken) {
+            // Redirect to the login page if no session token is found
+            window.location.href = 'index.html';
+        } else {
+            // Validate the session token
+            var request = new XMLHttpRequest();
+            request.open('POST', 'validateSession.php', true);
+            request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            request.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var response = JSON.parse(this.responseText);
+                    if (!response.success) {
+                        // If the token is invalid, redirect to the login page
+                        window.location.href = 'index.html';
+                    }
+                }
+            };
+            request.send('session_token=' + sessionToken);
+        }
+        });
+        // Function to toggle the alerts popup
+        // function toggleAlertsPopup() {
+        //     const popup = document.getElementById('alertsPopup');
+        //     popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+        // }
+
+        // Search for company reviews
+        function searchReviews() {
+            const companyName = document.getElementById('companyName').value;
+            sendReviewSearch(companyName);
+        }
+
+        function sendReviewSearch(companyName) {
+            var request = new XMLHttpRequest();
+            request.open("POST", "review.php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            console.log("companyName=" + encodeURIComponent(companyName));
+            request.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    console.log("Response received: ", this.responseText);
+                    reviewSearchResponse(this.responseText);
+                }
+            };
+
+            request.send("companyName=" + encodeURIComponent(companyName));
+        }
+
+        function reviewSearchResponse(response) {
+    var data = JSON.parse(response);
+    const results = document.getElementById('companyResults');
+    results.innerHTML = '';
+
+    // Check if the response indicates success and if companies exist
+    if (data.companies) { //////////////////////////////////////////DATA.SUCCESS = for reviews not for companies/////////////////////////////////////////////////////////////
+        // Access the 'companies' object directly
+        const company = data.companies;
+
+        
+        const companyDiv = document.createElement('div');
+        companyDiv.classList.add('company');
+        companyDiv.setAttribute('data-company-name', company.company_name);
+
+      
+        const name = document.createElement('h3');
+        name.textContent = company.company_name;
+        companyDiv.appendChild(name);
+
+        
+        if (company.reviews && company.reviews.length > 0) {
+            const reviewsContainer = document.createElement('div');
+            reviewsContainer.classList.add('reviews-container');
+
+            company.reviews.forEach(review => {
+                const reviewDiv = document.createElement('div');
+                reviewDiv.classList.add('review');
+
+                
+                const reviewer = document.createElement('p');
+                reviewer.textContent = 'Reviewer: ' + review.username;
+                reviewer.style.fontWeight = 'bold';
+                reviewDiv.appendChild(reviewer);
+
+                
+                const rating = document.createElement('p');
+                rating.textContent = 'Rating: ' + review.rating;
+                reviewDiv.appendChild(rating);
+
+                
+                const comment = document.createElement('p');
+                comment.textContent = 'Comment: ' + review.review_text;
+                reviewDiv.appendChild(comment);
+
+                reviewsContainer.appendChild(reviewDiv);
+            });
+
+            companyDiv.appendChild(reviewsContainer);
+        } else {
+            const noReviews = document.createElement('p');
+            noReviews.textContent = 'No reviews found for this company.';
+            companyDiv.appendChild(noReviews);
+        }
+
+        // Add Review Button
+        const addReviewBtn = document.createElement('button');
+        addReviewBtn.textContent = "Add Review";
+        addReviewBtn.classList.add('add-review-btn');
+        addReviewBtn.onclick = () => showReviewForm(company.company_name);
+        companyDiv.appendChild(addReviewBtn);
+
+        results.appendChild(companyDiv);
+    } else {
+        results.innerHTML = '<p>No companies found. Please try again.</p>';
+    }
+}
+
+
+
+function showReviewForm(companyName) {
+    // Find the correct companyDiv using the companyName
+    const companyDiv = document.querySelector(`.company[data-company-name="${companyName}"]`);
+
+    if (companyDiv) {
+        // Check if the review form already exists to prevent duplicates
+        if (companyDiv.querySelector('.review-section')) return;
+
+        // Create the review form
+        const reviewSection = document.createElement('div');
+        reviewSection.classList.add('review-section');
+
+        // Rating input
+        const ratingLabel = document.createElement('label');
+        ratingLabel.textContent = 'Rating (1-5):';
+        reviewSection.appendChild(ratingLabel);
+
+        const ratingInput = document.createElement('select');
+        ratingInput.id = 'newReviewRating';
+        [1, 2, 3, 4, 5].forEach(num => {
+            const option = document.createElement('option');
+            option.value = num;
+            option.textContent = num;
+            ratingInput.appendChild(option);
+        });
+        reviewSection.appendChild(ratingInput);
+
+        // Comment input
+        const commentLabel = document.createElement('label');
+        commentLabel.textContent = 'Comment:';
+        reviewSection.appendChild(commentLabel);
+
+        const commentInput = document.createElement('textarea');
+        commentInput.id = 'newReviewComment';
+        commentInput.placeholder = 'Write your review here...';
+        reviewSection.appendChild(commentInput);
+
+        
+        const submitBtn = document.createElement('button');
+        submitBtn.textContent = 'Submit Review';
+        submitBtn.classList.add('submit-btn');
+        submitBtn.onclick = () => submitReview(companyName);
+        reviewSection.appendChild(submitBtn);
+
+        companyDiv.appendChild(reviewSection);
+    } else {
+        console.error(`Company div not found for company name: ${companyName}`);
+    }
+}
+
+function submitReview(companyName) {
+    const rating = document.getElementById('newReviewRating').value;
+    const reviewText = document.getElementById('newReviewComment').value;
+    const username = localStorage.getItem('username');
+    var request = new XMLHttpRequest();
+    request.open("POST", "submitReview.php", true);
+    request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    console.log("companyName=" + encodeURIComponent(companyName) + "&username=" + username + "&rating=" + encodeURIComponent(rating) + "&reviewText=" + encodeURIComponent(reviewText));
+
+    request.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            console.log("Review submission response: ", this.responseText);
+            const response = JSON.parse(this.responseText);
+            const errorMessageDiv = document.getElementById('errorMessage');
+            errorMessageDiv.style.display = 'none';
+            errorMessageDiv.textContent = '';
+
+            if (response.success) {
+                
+                searchReviews();
+            } else {
+                
+                errorMessageDiv.textContent = response.message;
+                errorMessageDiv.style.display = 'block';
+            }
+        }
+    };
+
+    request.send("companyName=" + encodeURIComponent(companyName) + "&username=" + username + "&rating=" + encodeURIComponent(rating) + "&reviewText=" + encodeURIComponent(reviewText));
+}
+function logout() {
+            var sessionToken = localStorage.getItem('session_token');
+    
+            if (!sessionToken) {
+                console.log("No user logged in.");
+                return;
+            }
+    
+            var request = new XMLHttpRequest();
+            request.open("POST", "logout.php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    
+            request.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var response = JSON.parse(this.responseText);
+                    if (response.success) {
+                        console.log("Logout successful: ", response.message);
+    
+                        
+                        localStorage.removeItem('session_token');
+                        localStorage.removeItem('username');
+                        localStorage.removeItem('email');
+                        localStorage.removeItem('location');
+                        localStorage.removeItem('jobTitle');
+    
+                        
+                        window.location.href = "index.html";
+                    } else {
+                        console.log("Logout failed: ", response.message);
+                    }
+                }
+            };
+    
+            request.send("session_token=" + sessionToken);
+        }
+    </script>
+</body>
+</html>
