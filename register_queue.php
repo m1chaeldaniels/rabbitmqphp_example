@@ -75,14 +75,12 @@ try {
             echo "User $username or email $email already exists \n";
             sendMessage($channel, 'responseRegister', false, 'User or email already exists');
         } else {
-            // Insert user with phone number
             $stmt = $mysqli->prepare("INSERT INTO users (username, password_hash, email, phone_number) VALUES (?, ?, ?, ?)");
             $stmt->bind_param("ssss", $username, $password, $email, $phoneNumber);
             if ($stmt->execute()) {
                 $userId = $stmt->insert_id;
                 $stmt->close();
 
-                // Save user preferences
                 $stmt = $mysqli->prepare("INSERT INTO user_preferences (user_id, jobTitle, location) VALUES (?, ?, ?)");
                 $stmt->bind_param("iss", $userId, $jobTitle, $location);
                 if ($stmt->execute()) {

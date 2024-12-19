@@ -13,11 +13,12 @@ function getRabbitMQConfig() {
     return $config['rabbitMQ'];
 }
 
-function sendMessage($channel, $queue, $success, $message, $email, $jobTitle, $location, $username, $hasMatchingJobs) {
+function sendMessage($channel, $queue, $success, $message, $email, $phone_number, $jobTitle, $location, $username, $hasMatchingJobs) {
     $response = [
         'success' => $success,
         'message' => $message,
         'email' => $email,
+        'phone' => $phone_number,
         'jobTitle' => $jobTitle,
         'location' => $location,
         'username' => $username,
@@ -48,7 +49,7 @@ try {
         $data = json_decode($msg->body, true);
 
         if (!isset($data['username'], $data['session_token'], $data['token_expiry'])) {
-            sendMessage($channel, 'responseSessionToken', false, 'Invalid message format', null, null, null, null, null);
+            sendMessage($channel, 'responseSessionToken', false, 'Invalid message format', null, null, null, null, null, null);
             return;
         }
 
@@ -59,7 +60,7 @@ try {
         $mysqli = new mysqli('localhost', 'testUser', '12345', 'testdb');
 
         if ($mysqli->connect_error) {
-            sendMessage($channel, 'responseSessionToken', false, 'Database connection failed', null, null, null, null, null);
+            sendMessage($channel, 'responseSessionToken', false, 'Database connection failed', null, null, null, null, null, null);
             return;
         }
 
@@ -68,10 +69,10 @@ try {
         $stmt->bind_param("sis", $sessionToken, $tokenExpiry, $username);
 
         if ($stmt->execute()) {
-            $stmt = $mysqli->prepare("SELECT id, email, username, last_login FROM users WHERE username = ?");
+            $stmt = $mysqli->prepare("SELECT id, email, username, last_login, phone_number FROM users WHERE username = ?");
             $stmt->bind_param("s", $username);
             $stmt->execute();
-            $stmt->bind_result($userId, $email, $username, $lastLogin);
+            $stmt->bind_result($userId, $email, $username, $lastLogin, $phone_number);
             $stmt->fetch();
             $stmt->close();
 
@@ -107,19 +108,19 @@ try {
                     $updateStmt->execute();
                     $updateStmt->close();
 
-                    sendMessage($channel, 'responseSessionToken', true, 'Session token stored and last login updated', $email, $jobTitle, $location, $username, $hasMatchingJobs);
+                    sendMessage($channel, 'responseSessionToken', true, 'Session token stored and last login updated', $email, $phone_number, $jobTitle, $location, $username, $hasMatchingJobs);
 
                     echo "Updated last login for user: $username \n";
 
                 } else {
-                    sendMessage($channel, 'responseSessionToken', false, 'Error preparing jobs query', $email, $jobTitle, $location, $username, false);
+                    sendMessage($channel, 'responseSessionToken', false, 'Error preparing jobs query', $email, $phone_number, $jobTitle, $location, $username, false);
                 }
 
             } else {
-                sendMessage($channel, 'responseSessionToken', false, 'User not found', null, null, null, null, false);
+                sendMessage($channel, 'responseSessionToken', false, 'User not found', null, null, null, null, null, false);
             }
         } else {
-            sendMessage($channel, 'responseSessionToken', false, 'Failed to store session token', null, null, null, null, false);
+            sendMessage($channel, 'responseSessionToken', false, 'Failed to store session token', null, null, null, null, null, false);
         }
 
         $mysqli->close();
