@@ -1,0 +1,77 @@
+<?php
+
+ini_set('log_errors', 'Off');
+ini_set('display_errors', 'On');
+ini_set('display_startup_errors', 'On');
+error_reporting(E_ALL);
+
+set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+    $timestamp = "[" . date("d-M-Y H:i:s") . "]";
+    $local_error = "$timestamp [MALIN_VM] $errstr in $errfile on line $errline";
+    file_put_contents(
+        '/home/malin/Desktop/Error_Log/php-error.log',
+        $local_error . PHP_EOL,
+        FILE_APPEND
+    );
+    return true;
+});
+
+// This is a test that checks for more than one job (This is the development one)
+
+require_once __DIR__ . '/jet_api/Careerjet_API.php';
+
+if (php_sapi_name() == 'cli') {
+    $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+    $_SERVER['HTTP_USER_AGENT'] = 'CLI';
+}
+
+// Initialize CareerJet API 
+$cjapi = new Careerjet_API('en_US');
+
+// Arrays of keywords and locations
+$keywords_list = ['Java Software Engineer', 'Python Developer'];
+$locations_list = ['New Jersey', 'California'];
+
+//  Affiliate ID
+$affiliate_id = 'fcd2cacc0c8a6a59d9ea0d1fb45fea12';
+
+// Iterate through combinations of keywords and locations
+foreach ($keywords_list as $keywords) {
+    foreach ($locations_list as $location) {
+        echo "Searching for jobs with keywords '$keywords' in location '$location':\n\n";
+
+        // Search parameters
+        $search_params = array(
+            'keywords' => $keywords,
+            'location' => $location,
+            'affid'    => $affiliate_id,
+            'pagesize' => 1,
+            'sort'     => 'date'
+        );
+
+        // Fetch job data from CareerJet API
+        $result = $cjapi->search($search_params);
+
+        if ($result->type == 'JOBS') {
+            $jobs = $result->jobs;
+
+            echo "Got " . $result->hits . " jobs:\n\n";
+
+            foreach ($jobs as $job) {
+                echo "URL: " . $job->url . "\n";
+                echo "TITLE: " . $job->title . "\n";
+                echo "LOCATION: " . $job->locations . "\n";
+                echo "COMPANY: " . $job->company . "\n";
+                echo "SALARY: " . $job->salary . "\n";
+                echo "DATE: " . $job->date . "\n";
+                echo "DESCRIPTION: " . $job->description . "\n";
+                echo "-----------------------------\n";
+            }
+        } else {
+            echo "Error fetching jobs: " . $result->error . "\n";
+        }
+
+        echo "\n";
+    }
+}
+?>

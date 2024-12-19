@@ -20,7 +20,6 @@ set_error_handler(function ($errno, $errstr, $errfile, $errline) {
 
 require_once __DIR__ . '/jet_api/Careerjet_API.php';
 require_once __DIR__ . '/vendor/autoload.php';
-
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
