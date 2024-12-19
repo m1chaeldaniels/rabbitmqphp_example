@@ -1,0 +1,198 @@
+<!--Rudys Malin Michael Yaman-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="homepage.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>RMMY</title>
+</head>
+<body class="bg-dark text-light">
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="homepage.html">RMMY</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item"><a class="nav-link" href="homepage.html">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
+                        <li class="nav-item"><a class="nav-link" href="search_jobs.html">Search Jobs</a></li>
+                        <li class="nav-item"><a class="nav-link" href="applications.html">Applications</a></li>
+                        <li class="nav-item"><a class="nav-link" href="companies.html">Research Companies</a></li>
+                        <li class="nav-item"><a class="nav-link" href="recommendations.html">Recommendations</a></li>
+                        <li class="nav-item"><a class="nav-link" href="reviews.html">Reviews</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    
+    <!-- <div id="alertsPopup" class="alerts-popup" style="display: none;">
+        <div class="popup-content">
+            <h3>Alerts</h3>
+            <p>No new alerts at the moment.</p>
+            <button onclick="toggleAlertsPopup()" class="close-btn">Close</button>
+        </div>
+    </div> -->
+
+    <main class="container my-5">
+        <section class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-success">Welcome to Your Job Application Tracker!</h1>
+            <p class="lead text-gray">Manage your job search with ease and discover new opportunities.</p>
+            <a href="search_jobs.html" class="btn btn-success btn-lg rounded-pill px-4 shadow-sm">Start Searching Jobs</a>
+        </section>
+
+        
+        <section class="row g-4">
+            <div class="col-md-4 col-sm-6">
+                <div class="rounded-4 p-4 custom-card text-light shadow-sm text-center h-100">
+                    <i class="bi bi-person-circle display-4 text-success"></i>
+                    <h3 class="fw-bold mt-3">View Profile</h3>
+                    <p>View your profile to receive personalized job recommendations.</p>
+                    <a href="profile.html" class="btn btn-success rounded-pill px-3">Go to Profile</a>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="rounded-4 p-4 custom-card text-light shadow-sm text-center h-100">
+                    <i class="bi bi-search display-4 text-success"></i>
+                    <h3 class="fw-bold mt-3">Search Jobs</h3>
+                    <p>Browse through thousands of jobs that match your skills.</p>
+                    <a href="search_jobs.html" class="btn btn-success rounded-pill px-3">Search Now</a>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="rounded-4 p-4 custom-card text-light shadow-sm text-center h-100">
+                    <i class="bi bi-building display-4 text-success"></i>
+                    <h3 class="fw-bold mt-3">Company Research</h3>
+                    <p>Research companies and find the best fit for you.</p>
+                    <a href="applications.html" class="btn btn-success rounded-pill px-3">Applications</a>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="rounded-4 p-4 custom-card text-light shadow-sm text-center h-100">
+                    <i class="bi bi-building display-4 text-success"></i>
+                    <h3 class="fw-bold mt-3">Applications</h3>
+                    <p>Keep track of the jobs you've applied to with RMMY.</p>
+                    <a href="companies.html" class="btn btn-success rounded-pill px-3">Research Companies</a>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="rounded-4 p-4 custom-card text-light shadow-sm text-center h-100">
+                    <i class="bi bi-building display-4 text-success"></i>
+                    <h3 class="fw-bold mt-3">Recommendations</h3>
+                    <p>Get recommendations based of your profile.</p>
+                    <a href="recommendations.html" class="btn btn-success rounded-pill px-3">Recommendations</a>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <div class="rounded-4 p-4 custom-card text-light shadow-sm text-center h-100">
+                    <i class="bi bi-building display-4 text-success"></i>
+                    <h3 class="fw-bold mt-3">Reviews</h3>
+                    <p>Look and leave reviews on companies.</p>
+                    <a href="reviews.html" class="btn btn-success rounded-pill px-3">Reviews</a>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+
+    <footer class="bg-dark text-white text-center py-3 mt-auto">
+        <div class="container">
+            <p class="mb-0">&copy; 2024 Job Application Tracker | All Rights Reserved</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+        var sessionToken = localStorage.getItem('session_token');
+        if (!sessionToken) {
+         
+            window.location.href = 'index.html';
+        } else {
+           
+            var request = new XMLHttpRequest();
+            request.open('POST', 'validateSession.php', true);
+            request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            console.log('session_token=' + sessionToken);
+            request.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var response = JSON.parse(this.responseText);
+                    console.log(response);
+                    if (!response.success) {
+                      
+                        window.location.href = 'index.html';
+                    } else {
+                        checkForAlerts();
+                    }
+                }
+            };
+            request.send('session_token=' + sessionToken);
+        }
+        });
+
+        function checkForAlerts() {
+            console.log(localStorage.getItem('alerts'));
+            
+            if (localStorage.getItem('firstLoad') === 'true' && localStorage.getItem('alerts') === 'true') {
+                
+                alert("You have new alerts!");
+                //toggleAlertsPopup()
+                console.log("Yes alerts");
+
+               
+                localStorage.setItem('firstLoad', 'false');
+            } else {
+                console.log("No alerts");
+            }
+        }
+        // function toggleAlertsPopup() {
+        //     const popup = document.getElementById('alertsPopup');
+        //     popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+        // }
+
+        function logout() {
+            var sessionToken = localStorage.getItem('session_token');
+    
+            if (!sessionToken) {
+                console.log("No user logged in.");
+                return;
+            }
+    
+            var request = new XMLHttpRequest();
+            request.open("POST", "logout.php", true);
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    
+            request.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var response = JSON.parse(this.responseText);
+                    if (response.success) {
+                        console.log("Logout successful: ", response.message);
+    
+                        
+                        localStorage.removeItem('session_token');
+                        localStorage.removeItem('username');
+                        localStorage.removeItem('email');
+                        localStorage.removeItem('location');
+                        localStorage.removeItem('jobTitle');
+    
+                        
+                        window.location.href = "index.html";
+                    } else {
+                        console.log("Logout failed: ", response.message);
+                    }
+                }
+            };
+    
+            request.send("session_token=" + sessionToken);
+        }
+        
+    </script>
+</body>
+</html>
