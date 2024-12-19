@@ -37,10 +37,8 @@ function getRabbitMQConfig() {
 }
 
 try {
-    // Initialize CareerJet API 
     $cjapi = new Careerjet_API('en_US');
 
-    // Search parameters 
     $search_params = array(
         'keywords' => 'Java Software Engineer',
         'location' => 'New Jersey',

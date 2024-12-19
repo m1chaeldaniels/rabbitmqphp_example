@@ -25,19 +25,16 @@ if (php_sapi_name() == 'cli') {
     $_SERVER['HTTP_USER_AGENT'] = 'CLI';
 }
 
-// Initialize CareerJet API 
 $cjapi = new Careerjet_API('en_US');
 
-//  search parameters
 $search_params = array(
     'keywords' => 'Java Software Engineer',
     'location' => 'New Jersey',
-    'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12',  //  affiliate ID
+    'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12', 
     'pagesize' => 1, 
     'sort'     => 'date' 
 );
 
-// Fetch job data from CareerJet API
 $result = $cjapi->search($search_params);
 
 if ($result->type == 'JOBS') {

@@ -23,6 +23,11 @@ require_once __DIR__ . '/vendor/autoload.php';
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
+if (php_sapi_name() == 'cli') {
+    $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+    $_SERVER['HTTP_USER_AGENT'] = 'CLI';
+}
+
 function getRabbitMQConfig() {
     $config = parse_ini_file("/etc/RabbitMQ.ini", true);
     if (!isset($config['rabbitMQ'])) {
@@ -31,47 +36,45 @@ function getRabbitMQConfig() {
     return $config['rabbitMQ'];
 }
 
-// Initialize CareerJet API
-$cjapi = new Careerjet_API('en_US');
+try {
+    $cjapi = new Careerjet_API('en_US');
 
-$keywords = ['Java Software Engineer', 'PHP Developer', 'DevOps Engineer']; 
-$locations = ['New Jersey', 'New York', 'California']; 
+    $keywords = ['Java Software Engineer', 'PHP Developer'];
+    $locations = ['New Jersey', 'California'];
 
-$results = [];
+    $allJobs = [];
 
-// Loop through all keyword-location combinations
-foreach ($keywords as $keyword) {
-    foreach ($locations as $location) {
-        echo "Searching for: $keyword in $location...\n";
+    foreach ($keywords as $keyword) {
+        foreach ($locations as $location) {
+            echo "Searching for: $keyword in $location...\n";
 
-        // Search parameters
-        $search_params = array(
-            'keywords' => $keyword,
-            'location' => $location,
-            'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12',
-            'pagesize' => 1,
-            'sort'     => 'date'
-        );
+            $search_params = array(
+                'keywords' => $keyword,
+                'location' => $location,
+                'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12', 
+                'pagesize' => 1, 
+                'sort'     => 'date' 
+            );
 
-        try {
             $result = $cjapi->search($search_params);
 
             if ($result->type == 'JOBS' && !empty($result->jobs)) {
                 $jobs = $result->jobs;
-                $results[] = ['keyword' => $keyword, 'location' => $location, 'jobs' => $jobs];
+                $allJobs[] = [
+                    'keyword' => $keyword,
+                    'location' => $location,
+                    'jobs' => $jobs
+                ];
+                echo "Jobs found for $keyword in $location.\n";
             } else {
                 echo "No jobs found for $keyword in $location.\n";
             }
-        } catch (\Throwable $exception) {
-            echo "Error: " . $exception->getMessage() . "\n";
         }
     }
-}
 
-if (!empty($results)) {
-    $jsonData = json_encode($results, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    if (!empty($allJobs)) {
+        $jsonData = json_encode($allJobs, JSON_UNESCAPED_SLASHES);
 
-    try {
         $config = getRabbitMQConfig();
 
         $connection = new AMQPStreamConnection(
@@ -81,10 +84,9 @@ if (!empty($results)) {
             $config['password'],
             $config['vhost']
         );
-
         $channel = $connection->channel();
-        $queueName = 'test1';
 
+        $queueName = 'test1';
         $channel->queue_declare($queueName, false, false, false, false);
 
         $message = new AMQPMessage($jsonData);
@@ -94,12 +96,12 @@ if (!empty($results)) {
 
         $channel->close();
         $connection->close();
-
-    } catch (Exception $e) {
-        echo 'Error: ' . $e->getMessage() . "\n";
+    } else {
+        echo "No job data to send.\n";
     }
-} else {
-    echo "No job data to send.\n";
+
+} catch (\Throwable $exception) {
+    echo "Error: " . $exception->getMessage() . "\n";
 }
 
 ?>
