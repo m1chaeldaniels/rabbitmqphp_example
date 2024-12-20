@@ -99,7 +99,7 @@ try {
                 echo "Job inserted: $title | Added at: $jobAddedTime\n";
 
                 $alertQuery = "
-                    SELECT u.username, u.email, up.jobTitle, up.location
+                    SELECT u.username, u.email, u.phone_number, up.jobTitle, up.location
                     FROM user_preferences up
                     JOIN users u ON up.user_id = u.id
                     WHERE ? LIKE CONCAT('%', up.jobTitle, '%')
@@ -115,8 +115,9 @@ try {
                     while ($row = $result->fetch_assoc()) {
                         $username = $row['username'];
                         $email = $row['email'];
-                        $usersToNotify[] = ['username' => $username, 'email' => $email];
-                        echo "User matched: $username ($email) for job title: $title in location: $locations\n";
+                        $phone = $row['phone_number'];
+                        $usersToNotify[] = ['username' => $username, 'email' => $email, 'phone_number' => $phone];
+                        echo "User matched: $username ($email, $phone) for job title: $title in location: $locations\n";
                     }
 
                     $alertStmt->close();
