@@ -28,7 +28,7 @@ if (php_sapi_name() == 'cli') {
 $cjapi = new Careerjet_API('en_US');
 
 $search_params = array(
-    'keywords' => 'Java Software Engineer',
+    'keywords' => 'Developer',
     'location' => 'New Jersey',
     'affid'    => 'fcd2cacc0c8a6a59d9ea0d1fb45fea12', 
     'pagesize' => 1, 
